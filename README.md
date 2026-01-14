@@ -6,9 +6,23 @@ This script will auto dim whatever monitor your mouse is not on and also adjusts
   -Mouse-based dimming can be toggled off with a hotkey.
 	-Time-based dimming/gamma adjustments will always remain active.
 
+**ADDED STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming)
+https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d/fade-monitors-auto-2d.sh
 
+(This version does not have time-based brightness or gamma control but has been updated to auto-detect monitors so no need to input x, y axis)
 
+Simple instructions for standalone
 
+-make it executable 
+chmod +x fade-monitors-auto-2d.sh
+
+Run
+~/fade-monitors-auto-2d.sh
+
+Stop
+pkill -f fade-monitors-auto-2d.sh
+
+(Please read rest of readme for bindkeys and startup instructions)
 
 Requirements:
 
@@ -19,14 +33,14 @@ Requirements:
 
 Install requirements on Debian/Ubuntu/Mint (copy/paste commands into terminal)
 
-sudo apt install x11-xserver-utils xdotool
+	sudo apt install x11-xserver-utils xdotool
 
-(xrandr will be installed if not already)
+	(xrandr will be installed if not already)
 
 
 Optional (for hotkey support):
 
-sudo apt install xbindkeys
+	sudo apt install xbindkeys
 
 
 
@@ -35,7 +49,7 @@ sudo apt install xbindkeys
 Installation:
 
 	1. Download the script
-
+	(click on green code button and hit download zip)
 
 	2. Make the script executable
 
@@ -65,9 +79,7 @@ You will also need the x position for each monitor.
 (Here we plug in 0 and 1920 as X start and 1920 and 3840 as X end; The 3840 is 1920 + 1920)
 
 
-Save the file and close.
-
-
+	Save the file and close.
 
 
 
@@ -77,16 +89,15 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 	sudo apt install xbindkeys
 
-	2. Create (or open) the xbindkeys config
+	2. Create (or open) the xbindkeys config file
 
 	nano ~/.xbindkeysrc
 
-
 	3.Add this block (copy/paste)
 
-# Toggle mouse-based monitor fading
-"if [ -f ~/.fade_mouse_enabled ]; then rm ~/.fade_mouse_enabled; else touch ~/.>
-   F10
+	"if [ -f ~/.fade_mouse_enabled ]; then rm ~/.fade_mouse_enabled; else touch ~/.fade_mouse_enabled; fi"
+   	F10
+
 
 	4. Save and exit
 	crtl + o, enter. crtl + x
@@ -107,18 +118,18 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 Running the script manually:
 
-~/fade-monitors-night-gamma.sh &
+	~/fade-monitors-night-gamma.sh &
 
 Stop: 
 
-pkill -f fade-monitors-night-gamma.sh
+	pkill -f fade-monitors-night-gamma.sh
 
 
 Run script at start up
 
-Open Start up applications> click + then custom command>browse and select the script you downloaded
+	Open Start up applications> click + then custom command>browse and select the script you downloaded
 
-Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
+	Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
 
 
 
