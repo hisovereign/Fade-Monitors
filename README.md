@@ -83,9 +83,7 @@ You will also need the x position for each monitor.
 	Save the file and close.
 
 
-*Reset brightness command for xrandr
-	
-	xrandr --output <output-name> --brightness 1.0
+
 	
 Using xbindkeys (recommended) (copy/paste commands into terminal)
 
@@ -118,8 +116,6 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 
 
-
-
 Running the script manually:
 
 	~/fade-monitors-night-gamma.sh &
@@ -134,8 +130,6 @@ Run script at start up
 	Open Start up applications> click + then custom command>browse and select the script you downloaded
 
 	Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
-
-
 
 
 
@@ -173,3 +167,8 @@ Here 1050 is 17:30 and 360 is 06:00
 19:00 = 1140
 19:30 = 1170
 20:00 = 1200
+
+
+*Reset brightness command for xrandr if needed
+	
+	xrandr --output <output-name> --brightness 1.0
