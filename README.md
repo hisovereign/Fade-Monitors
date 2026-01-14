@@ -23,6 +23,7 @@ Run
 Stop
 pkill -f fade-monitors-auto-2d.sh
 
+
 (Please read rest of readme for bindkeys and startup instructions)
 
 Requirements:
@@ -82,7 +83,9 @@ You will also need the x position for each monitor.
 
 	Save the file and close.
 
-
+*Reset brightness command for xrandr
+	
+	xrandr --output <output-name> --brightness 1.0
 
 Using xbindkeys (recommended) (copy/paste commands into terminal)
 
