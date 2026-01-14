@@ -12,6 +12,7 @@ https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d/fade-monitor
 (This version does not have time-based brightness or gamma control but has been updated to auto-detect monitors so no need to input x, y axis)
 
 Simple instructions for standalone
+(make sure to stop original script if it's running)
 
 -make it executable 
 chmod +x fade-monitors-auto-2d.sh
