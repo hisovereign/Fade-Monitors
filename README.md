@@ -170,5 +170,3 @@ Here 1050 is 17:30 and 360 is 06:00
 19:00 = 1140
 19:30 = 1170
 20:00 = 1200
-
-⚠️ Note: This script **does not work with Nightlight or Redshift**. Using them at the same time will cause conflicts with brightness and gamma adjustments.
