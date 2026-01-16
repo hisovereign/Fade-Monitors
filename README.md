@@ -1,5 +1,5 @@
 # Fade-Monitors
-Mouse-aware and time based monitor dimming with gamma control for Debian Linux
+Mouse-aware and time based monitor dimming with gamma control (X11)
 
 This script will auto dim whatever monitor your mouse is not on and also adjusts the brightness and gamma of all monitors at specific times. 
 	
