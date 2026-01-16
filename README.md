@@ -1,5 +1,5 @@
 # Fade-Monitors
-Mouse-aware and time based monitor dimming (X11)
+Mouse-aware monitor dimming (X11)
 
 This script will auto dim whatever monitor your mouse is not on
 	-Mouse-based dimming can be toggled off with a hotkey.
