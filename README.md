@@ -1,3 +1,15 @@
+
+**THIS IS THE ORIGINAL FADE MONITORS SCRIPT. PLEASE USE THE UPDATED RELEASE FROM CURRENT BRANCH IN LINK BELOW**
+https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable-time-based/fade-monitors-2d-time-based.sh
+
+**FOR STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming only)
+https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/fade-monitors-auto-2d-stable.sh
+
+(These versions auto-detect monitor positions and have been optomized to the best of current my knowledge)
+
+
+
+
 # Fade-Monitors
 Mouse-aware and time based monitor dimming with gamma control (X11)
 
@@ -6,30 +18,6 @@ This script will auto dim whatever monitor your mouse is not on and also adjusts
   -Mouse-based dimming can be toggled off with a hotkey.
 	-Time-based dimming/gamma adjustments will always remain active.
 
-**ADDED STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming)
-https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/fade-monitors-auto-2d-stable.sh
-
-(This version does not have time-based brightness or gamma control but has been updated to auto-detect monitors so no need to input x, y axis)
-
-Simple instructions for standalone
-(make sure to stop original script if it's running)
-
-Download the file by clicking on the link and hit download raw file
-
--make it executable 
-
-	chmod +x fade-monitors-auto-2d-stable.sh
-
-Run
-
-	~/fade-monitors-auto-2d-stable.sh
-
-Stop
-
-	pkill -f fade-monitors-auto-2d-stable.sh
-
-
-(Please read rest of readme for bindkeys and startup instructions)
 
 Requirements:
 
