@@ -1,27 +1,28 @@
 # Fade-Monitors
 Mouse-aware and time based monitor dimming with gamma control for Debian Linux
 
-This script will auto dim whatever monitor your mouse is not on and also adjusts the brightness and gamma of all monitors at specific times. 
-	
-  -Mouse-based dimming can be toggled off with a hotkey.
-	-Time-based dimming/gamma adjustments will always remain active.
-
-**ADDED STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming)
-https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d/fade-monitors-auto-2d.sh
+This script will auto dim whatever monitor your mouse is not on
+	-Mouse-based dimming can be toggled off with a hotkey.
 
 (This version does not have time-based brightness or gamma control but has been updated to auto-detect monitors so no need to input x, y axis)
+
+**This is the updated stable version of the mouse-based auto-dim stand-alone script
+-Improved architechture that reduces CPU consumption and prvents cumulative lad during repeated display layout changes
 
 Simple instructions for standalone
 (make sure to stop original script if it's running)
 
 -make it executable 
-chmod +x fade-monitors-auto-2d.sh
+
+	chmod +x fade-monitors-auto-2d-stable.sh
 
 Run
-~/fade-monitors-auto-2d.sh
+
+	~/fade-monitors-auto-2d-stable.sh
 
 Stop
-pkill -f fade-monitors-auto-2d.sh
+
+	pkill -f fade-monitors-auto-2d-stable.sh
 
 (Please read rest of readme for bindkeys and startup instructions)
 
