@@ -1,5 +1,5 @@
 # Fade-Monitors
-Mouse-aware and time based monitor dimming with gamma control for Debian Linux
+Mouse-aware and time based monitor dimming with gamma control (X11)
 
 This script will auto dim whatever monitor your mouse is not on
 	-Mouse-based dimming can be toggled off with a hotkey.
@@ -7,24 +7,9 @@ This script will auto dim whatever monitor your mouse is not on
 (This version does not have time-based brightness or gamma control but has been updated to auto-detect monitors so no need to input x, y axis)
 
 **This is the updated stable version of the mouse-based auto-dim stand-alone script
--Improved architechture that reduces CPU consumption and prvents cumulative lad during repeated display layout changes
+-Improved architechture that reduces CPU consumption and prevents cumulative lag during repeated display layout changes
 
-Simple instructions for standalone
-(make sure to stop original script if it's running)
 
--make it executable 
-
-	chmod +x fade-monitors-auto-2d-stable.sh
-
-Run
-
-	~/fade-monitors-auto-2d-stable.sh
-
-Stop
-
-	pkill -f fade-monitors-auto-2d-stable.sh
-
-(Please read rest of readme for bindkeys and startup instructions)
 
 Requirements:
 
@@ -33,7 +18,7 @@ Requirements:
 	-xdotool - reads mouse position
 
 
-Install requirements on Debian/Ubuntu/Mint (copy/paste commands into terminal)
+Install requirements (copy/paste commands into terminal)
 
 	sudo apt install x11-xserver-utils xdotool
 
@@ -47,44 +32,19 @@ Optional (for hotkey support):
 
 
 
-
 Installation:
 
 	1. Download the script
-	(click on green code button and hit download zip)
+	(click on fade-monitor-sauto-2d-stable and to the right of where it says RAW click download raw file)
 
 	2. Make the script executable
 
-	chmod +x fade-monitors-night-gamma.sh
+	chmod +x fade-monitors-auto-2d-stable.sh
 
-
-	3. Get names and positions for your monitors (only side by side monitors supported)
-
-	xrandr --listmonitors
-
-	Example output:
-
-	Monitors: 2
- 	0: +*DisplayPort-1 1920/527x1080/296+0+170  DisplayPort-1
- 	1: +HDMI-A-0 1920/930x1080/523+1920+0  HDMI-A-0
-
-
-Here you want to copy where DisplayPort-1 and HDMI-A-0 are but they should be relevent to your monitors
-
-Double click on the script and check display. Plug in the names in this part of the script
-
-	MONITORS=("DisplayPort-1" "HDMI-A-0")
-	MON_X_START=(0 1920)
-	MON_X_END=(1920 3840)
-
-You will also need the x position for each monitor. 
-(Here we plug in 0 and 1920 as X start and 1920 and 3840 as X end; The 3840 is 1920 + 1920)
-
-
-	Save the file and close.
-
-
-
+	Run manually
+		~/fade-monitors-auto-2d-stable.sh
+	Stop
+		pkill -f fade-monitors-auto-2d-stable.sh
 	
 Using xbindkeys (recommended) (copy/paste commands into terminal)
 
@@ -111,19 +71,7 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
 	xbindkeys
 
 	5. Press the F10 (or designated key) to toggle mouse-based fading.
-		-Time based-based brightness will continue working normally
 
-
-
-
-
-Running the script manually:
-
-	~/fade-monitors-night-gamma.sh &
-
-Stop: 
-
-	pkill -f fade-monitors-night-gamma.sh
 
 
 Run script at start up
@@ -132,42 +80,6 @@ Run script at start up
 
 	Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
 
-
-
-
-
-Configuratuion: (can all be changed in script)
-
-Default times are 06:00 and 17:30
-Default auto dim for inactive monitor 20% 
-Default brightness/gamma at 100% between 06:00 - 17:30
-Default dim level between 17:30 - 06:00: 60% brightness 
-Default gamma between 17:30 - 06:00 is set to "warm" to reduce blue light 
-
-
-To change the timing you'll have to do some conversions but I'm going to place some sample times you can just plug in.
-
-It can be found in this part of the script:
-
-
-# Determine baseline brightness
-    if [ $TIME_MIN -ge 1050 ] || [ $TIME_MIN -lt 360 ]; then 
-
-
-Here 1050 is 17:30 and 360 is 06:00
-
-05:00 = 300
-05:30 = 330
-06:30 = 390
-07:00 = 420
-07:30 = 450
-
-17:00 = 1020
-18:00 = 1080
-18:30 = 1110
-19:00 = 1140
-19:30 = 1170
-20:00 = 1200
 
 
 *Reset brightness command for xrandr if needed
