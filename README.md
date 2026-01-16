@@ -8,8 +8,6 @@ This script will auto dim whatever monitor your mouse is not on as well auto dim
 
 **This is the updated, stable version of the stand-alone release with added time-based auto-dim and optional gammma controls similar to the original fade-monitors-night-gamma script
 
--Improved architechture that reduces CPU consumption and prevents cumulative lag during repeated display layout changes (brought over from stand-alone + stable release)
-
 
 Requirements:
 
