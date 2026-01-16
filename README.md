@@ -1,5 +1,6 @@
 
 **THIS IS THE ORIGINAL FADE MONITORS SCRIPT. PLEASE USE THE UPDATED RELEASE FROM CURRENT BRANCH IN LINK BELOW**
+
 https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable-time-based/fade-monitors-2d-time-based.sh
 
 **FOR STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming only)
