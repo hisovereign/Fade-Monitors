@@ -3,7 +3,9 @@
 
 https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable-time-based/fade-monitors-2d-time-based.sh
 
+
 **FOR STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming only)
+
 https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/fade-monitors-auto-2d-stable.sh
 
 (These versions auto-detect monitor positions and have been optomized to the best of current my knowledge)
