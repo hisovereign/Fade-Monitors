@@ -7,21 +7,26 @@ This script will auto dim whatever monitor your mouse is not on and also adjusts
 	-Time-based dimming/gamma adjustments will always remain active.
 
 **ADDED STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming)
-https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d/fade-monitors-auto-2d.sh
+https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/fade-monitors-auto-2d-stable.sh
 
 (This version does not have time-based brightness or gamma control but has been updated to auto-detect monitors so no need to input x, y axis)
 
 Simple instructions for standalone
 (make sure to stop original script if it's running)
 
+Download the file by clicking on the link and hit download raw file
+
 -make it executable 
-chmod +x fade-monitors-auto-2d.sh
+
+	chmod +x fade-monitors-auto-2d-stable.sh
 
 Run
-~/fade-monitors-auto-2d.sh
+
+	~/fade-monitors-auto-2d-stable.sh
 
 Stop
-pkill -f fade-monitors-auto-2d.sh
+
+	pkill -f fade-monitors-auto-2d-stable.sh
 
 
 (Please read rest of readme for bindkeys and startup instructions)
