@@ -2,6 +2,7 @@
 # -----------------------------
 # Mouse-Based Per-Monitor Dimming
 # (Stable + Time-Based Brightness + Optional Gamma)
+# Optimized to further reduce CPU usage
 # -----------------------------
 # Requires: xrandr, xdotool
 # -----------------------------
@@ -11,24 +12,24 @@
 # -----------------------------
 
 # Day / Night brightness
-DAY_BRIGHTNESS=0.8
+DAY_BRIGHTNESS=0.7
 NIGHT_BRIGHTNESS=0.5
 DIM_BRIGHTNESS=0.2
 
 # Time window (24h, HHMM)
-NIGHT_START=1630   # 16:30
-DAY_START=0600     # 06:00
+NIGHT_START=1700
+DAY_START=0600
 
 # Gamma control (optional)
 ENABLE_GAMMA=false
 DAY_GAMMA="1.0:1.0:1.0"
-NIGHT_GAMMA="1.0:0.85:0.7"
+NIGHT_GAMMA="1.0:0.85:0.1"
 
 # Toggle file (mouse dim enable/disable)
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
 
 # Poll intervals
-MOUSE_INTERVAL=0.05
+MOUSE_INTERVAL=0.1
 GEOM_INTERVAL=2
 
 # -----------------------------
@@ -41,6 +42,7 @@ GEOM_HASH=""
 LAST_GEOM_CHECK=0
 GEOM_DIRTY=0
 LAST_GAMMA_STATE=""
+LAST_TIME_STATE=""
 
 # -----------------------------
 # Cleanup
@@ -92,9 +94,7 @@ current_time_hhmm() {
 }
 
 is_night() {
-    NOW=$(current_time_hhmm)
-
-    NOW=$((10#$NOW))
+    NOW=$((10#$(current_time_hhmm)))
     NIGHT=$((10#$NIGHT_START))
     DAY=$((10#$DAY_START))
 
@@ -140,26 +140,25 @@ while true; do
     if is_night; then
         BASE_BRIGHTNESS="$NIGHT_BRIGHTNESS"
         TARGET_GAMMA="$NIGHT_GAMMA"
-        GAMMA_STATE="night"
+        TIME_STATE="night"
     else
         BASE_BRIGHTNESS="$DAY_BRIGHTNESS"
         TARGET_GAMMA="$DAY_GAMMA"
-        GAMMA_STATE="day"
+        TIME_STATE="day"
     fi
 
-    # Apply gamma only if enabled & changed
-    if [ "$ENABLE_GAMMA" = true ] && [ "$GAMMA_STATE" != "$LAST_GAMMA_STATE" ]; then
+    # Only apply gamma if changed
+    if [ "$ENABLE_GAMMA" = true ] && [ "$TIME_STATE" != "$LAST_GAMMA_STATE" ]; then
         for MON in "${MONITORS[@]}"; do
             xrandr --output "$MON" --gamma "$TARGET_GAMMA"
         done
-        LAST_GAMMA_STATE="$GAMMA_STATE"
+        LAST_GAMMA_STATE="$TIME_STATE"
     fi
 
     # -------- Mouse logic --------
     eval "$(xdotool getmouselocation --shell)"
 
     ACTIVE_MON=""
-
     for MON in "${MONITORS[@]}"; do
         if [ "$X" -ge "${MON_X1[$MON]}" ] && [ "$X" -lt "${MON_X2[$MON]}" ] &&
            [ "$Y" -ge "${MON_Y1[$MON]}" ] && [ "$Y" -lt "${MON_Y2[$MON]}" ]; then
@@ -168,18 +167,22 @@ while true; do
         fi
     done
 
+    # -------- Apply per-monitor brightness --------
     for MON in "${MONITORS[@]}"; do
         TARGET="$BASE_BRIGHTNESS"
-
         if [ -f "$TOGGLE_FILE" ] && [ "$MON" != "$ACTIVE_MON" ]; then
             TARGET="$DIM_BRIGHTNESS"
         fi
 
-        if [ "$ENABLE_GAMMA" = true ]; then
-    xrandr --output "$MON" --brightness "$TARGET" --gamma "$TARGET_GAMMA"
-else
-    xrandr --output "$MON" --brightness "$TARGET"
-fi
+        # Only update if changed
+        if [ "${MON_LAST_BRIGHT[$MON]}" != "$TARGET" ]; then
+            if [ "$ENABLE_GAMMA" = true ]; then
+                xrandr --output "$MON" --brightness "$TARGET" --gamma "$TARGET_GAMMA"
+            else
+                xrandr --output "$MON" --brightness "$TARGET"
+            fi
+            MON_LAST_BRIGHT["$MON"]="$TARGET"
+        fi
     done
 
     sleep "$MOUSE_INTERVAL"
