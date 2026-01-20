@@ -4,7 +4,7 @@ Mouse-aware and time-based monitor dimming with optional gamma control for (X11)
 
 
 
-This script will auto dim whatever monitor your mouse is not on as well auto dim at specified times with optional gamma changes
+This script will auto dim whatever monitor your mouse is not on as well as auto dim at specified times with optional gamma changes
 
 -Mouse-based dimming can be toggled off with a hotkey and defaults changed near top of script
 
@@ -84,9 +84,8 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
    		xbindkeys
 
 5. Press F10 (or designated key) to toggle mouse-based fading.
-   
-   -Time based-based brightness will continue working normally
 
+   (Time based-based brightness will continue working normally)
 
 
 
@@ -103,11 +102,12 @@ Run script at start up
 
 Configuratuion: (can all be changed in script)
 
--You only need to change the actual values e.g. .08 for day brightness or 1630 for night start.
+-You only need to change the actual values e.g. 0.8 for day brightness or 1630 for night start.
+
 -Gamma is set to off (false) by default; to change make it (=true)
 
 # Day / Night brightness
-	DAY_BRIGHTNESS=0.8
+	DAY_BRIGHTNESS=0.7
 	NIGHT_BRIGHTNESS=0.5
 	DIM_BRIGHTNESS=0.2
 
