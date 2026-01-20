@@ -2,23 +2,29 @@
 Mouse-aware and time-based monitor dimming with optional gamma control for (X11)
 
 
+
+
 This script will auto dim whatever monitor your mouse is not on as well auto dim at specified times with optional gamma changes
 
 -Mouse-based dimming can be toggled off with a hotkey and defaults changed near top of script
 
 
 
+
+
 **This is the updated, stable version of the stand-alone release with added time-based auto-dim and optional gammma controls similar to the original fade-monitors-night-gamma script
+
 
 
 Requirements:
 
--x11 session (not Wayland)
+-x11 session 
 -xrandr - controls montior brightness/gamma
 -xdotool - reads mouse position
 
 
-Install requirements (X11 session) (copy/paste commands into terminal)
+
+Install requirements (copy/paste commands into terminal)
 
 	sudo apt install x11-xserver-utils xdotool
 
@@ -49,6 +55,9 @@ Run script manually
 Stop
 
 	pkill -f fade-monitors-2d-time-based.sh
+
+
+
 	
 Using xbindkeys (recommended) (copy/paste commands into terminal)
 
