@@ -71,7 +71,8 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
    		xbindkeys
 
 5. Press F10 (or designated key) to toggle mouse-based fading.
-	-Time based-based brightness will continue working normally
+   
+   -Time based-based brightness will continue working normally
 
 
 
@@ -109,4 +110,7 @@ Configuratuion: (can all be changed in script)
 **Important Information**
 
 -Having gamma on will conflict with other programs that alter gamma
+
 -Having gamma on causes visual brightness jumps during time-based transitions. This is expected.
+
+-The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more aggresive responsives at the cost of higher CPU activity.
