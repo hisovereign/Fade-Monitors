@@ -3,7 +3,7 @@ Mouse-aware and time-based monitor dimming with optional gamma control for (X11)
 
 This script will auto dim whatever monitor your mouse is not on as well auto dim at specified times with optional gamma changes
 
-	-Mouse-based dimming can be toggled off with a hotkey and defaults changed near top of script
+-Mouse-based dimming can be toggled off with a hotkey and defaults changed near top of script
 
 
 **This is the updated, stable version of the stand-alone release with added time-based auto-dim and optional gammma controls similar to the original fade-monitors-night-gamma script
@@ -11,16 +11,16 @@ This script will auto dim whatever monitor your mouse is not on as well auto dim
 
 Requirements:
 
-	-x11 session (not Wayland)
-	-xrandr - controls montior brightness/gamma
-	-xdotool - reads mouse position
+-x11 session (not Wayland)
+-xrandr - controls montior brightness/gamma
+-xdotool - reads mouse position
 
 
 Install requirements (X11 session) (copy/paste commands into terminal)
 
 	sudo apt install x11-xserver-utils xdotool
 
-	(xrandr will be installed if not already)
+(xrandr will be installed if not already)
 
 
 Optional (for hotkey support):
@@ -31,45 +31,47 @@ Optional (for hotkey support):
 
 Installation:
 
-	1. Download the script
+1. Download the script
 	(click on the fade-monitors-2d-time-based script then to the right of where it says RAW click download raw file)
 
-	2. Make the script executable (open up a terminal and copy/paste commands then hit enter)
+2. Make the script executable (open up a terminal and copy/paste commands then hit enter)
 
-	chmod +x fade-monitors-2d-time-based.sh
+		chmod +x fade-monitors-2d-time-based.sh
 
-	Run script manually
+Run script manually
+
 	~/fade-monitors-2d-time-based.sh
 
-	Stop
+Stop
+
 	pkill -f fade-monitors-2d-time-based.sh
 	
 Using xbindkeys (recommended) (copy/paste commands into terminal)
 
-	1. Install bindkeys
+1. Install bindkeys
 
-	sudo apt install xbindkeys
+		sudo apt install xbindkeys
 
-	2. Create (or open) the xbindkeys config file
+2. Create (or open) the xbindkeys config file
 
-	nano ~/.xbindkeysrc
+		nano ~/.xbindkeysrc
 
-	3.Add this block (copy/paste)
+3.Add this block (copy/paste)
 
 	"if [ -f ~/.fade_mouse_enabled ]; then rm ~/.fade_mouse_enabled; else touch ~/.fade_mouse_enabled; fi"
    	F10
 
-
-	4. Save and exit
+4. Save and exit
 	crtl + o, enter. crtl + x
 
-	5. Start or restart xbindkeys 
+5. Start or restart xbindkeys 
 
-	killall xbindkeys
-	xbindkeys
+		killall xbindkeys
+	
+   		xbindkeys
 
-	5. Press F10 (or designated key) to toggle mouse-based fading.
-		-Time based-based brightness will continue working normally
+5. Press F10 (or designated key) to toggle mouse-based fading.
+	-Time based-based brightness will continue working normally
 
 
 
@@ -77,9 +79,9 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 Run script at start up
 
-	Open Start up applications> click + then custom command>browse and select the script you downloaded
+1. Open Start up applications> click + then custom command>browse and select the script you downloaded
 
-	Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
+2. Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
 
 
 
@@ -87,8 +89,8 @@ Run script at start up
 
 Configuratuion: (can all be changed in script)
 
-	-You only need to change the actual values e.g. .08 for day brightness or 1630 for night start.
-	-Gamma is set to off (false) by default; to change make it (=true)
+-You only need to change the actual values e.g. .08 for day brightness or 1630 for night start.
+-Gamma is set to off (false) by default; to change make it (=true)
 
 # Day / Night brightness
 	DAY_BRIGHTNESS=0.8
