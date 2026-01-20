@@ -34,13 +34,15 @@ Installation:
 1. Download the script
 	(click on the fade-monitors-2d-time-based script then to the right of where it says RAW click download raw file)
 
-2. Make the script executable (open up a terminal and copy/paste commands then hit enter)
+2. Move it to ~/.local/bin
 
-		chmod +x fade-monitors-2d-time-based.sh
+3. Make the script executable (open up a terminal and copy/paste commands then hit enter)
+
+		chmod +x ~/.local/bin/fade-monitors-2d-time-based.sh
 
 Run script manually
 
-	~/fade-monitors-2d-time-based.sh
+	~/.local/bin/fade-monitors-2d-time-based.sh
 
 Stop
 
