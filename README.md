@@ -1,9 +1,11 @@
 # Fade-Monitors
 Mouse-aware and time-based monitor dimming with optional gamma control for (X11)
 
+
 This script will auto dim whatever monitor your mouse is not on as well auto dim at specified times with optional gamma changes
 
 -Mouse-based dimming can be toggled off with a hotkey and defaults changed near top of script
+
 
 
 **This is the updated, stable version of the stand-alone release with added time-based auto-dim and optional gammma controls similar to the original fade-monitors-night-gamma script
