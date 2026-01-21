@@ -35,7 +35,7 @@ Optional (for hotkey support):
 Installation:
 
 1. Download the script
-	(click on fade-monitor-sauto-2d-stable and to the right of where it says RAW click download raw file)
+	(click on fade-monitors-auto-2d-stable and to the right of where it says RAW click download raw file)
 
 2. Move it to ~/.local/bin
 
