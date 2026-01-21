@@ -1,20 +1,20 @@
 #!/bin/bash
 # -----------------------------
 # Mouse-Based Per-Monitor Dimming
-# (Stable Version)
+# (Stable and Optimized Stand-Alone Version)
 # -----------------------------
 # Requires: xrandr, xdotool
 # -----------------------------
 
 # Brightness levels
-ACTIVE_BRIGHTNESS=0.8
+ACTIVE_BRIGHTNESS=0.7
 DIM_BRIGHTNESS=0.2
 
 # Toggle file
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
 
 # Mouse poll interval (seconds)
-MOUSE_INTERVAL=0.05
+MOUSE_INTERVAL=0.1
 
 # Geometry poll interval (seconds)
 GEOM_INTERVAL=2
@@ -41,7 +41,7 @@ restore_brightness() {
 trap restore_brightness SIGINT SIGTERM
 
 # -----------------------------
-# Read monitor geometry ONCE
+# Read monitor geometry
 # -----------------------------
 read_monitors() {
     MONITORS=()
@@ -51,7 +51,7 @@ read_monitors() {
     MON_Y2=()
     MON_LAST_BRIGHT=()
 
-    mapfile -t lines < <(xrandr --listmonitors | tail -n +2)
+    mapfile -t lines < <(echo "$XRANDR_LIST" | tail -n +2)
 
     for line in "${lines[@]}"; do
         if [[ $line =~ ([0-9]+:[[:space:]]+[\+\*]*)([A-Za-z0-9-]+)[[:space:]]+([0-9]+)\/[0-9]+x([0-9]+)\/[0-9]+\+([0-9]+)\+([0-9]+) ]]; then
@@ -74,8 +74,9 @@ read_monitors() {
 # -----------------------------
 # Initial setup
 # -----------------------------
+XRANDR_LIST=$(xrandr --listmonitors)
 read_monitors
-GEOM_HASH="$(xrandr --listmonitors | sha1sum | awk '{print $1}')"
+GEOM_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
 
 # -----------------------------
 # Main loop
@@ -83,52 +84,47 @@ GEOM_HASH="$(xrandr --listmonitors | sha1sum | awk '{print $1}')"
 while true; do
     NOW=$(date +%s)
 
-    # -------- Geometry check (SLOW PATH) --------
+    # -------- Geometry check (slow path) --------
     if (( NOW - LAST_GEOM_CHECK >= GEOM_INTERVAL )); then
         LAST_GEOM_CHECK=$NOW
-
-        NEW_HASH="$(xrandr --listmonitors | sha1sum | awk '{print $1}')"
+        XRANDR_LIST=$(xrandr --listmonitors)
+        NEW_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
         if [ "$NEW_HASH" != "$GEOM_HASH" ]; then
             GEOM_HASH="$NEW_HASH"
             GEOM_DIRTY=1
             read_monitors
-            sleep "$MOUSE_INTERVAL"
-            continue
         fi
     fi
 
     # Skip brightness work while geometry just changed
     if [ "$GEOM_DIRTY" -eq 1 ]; then
         GEOM_DIRTY=0
-        sleep "$MOUSE_INTERVAL"
-        continue
+    else
+        # -------- Mouse logic (fast path) --------
+        eval "$(xdotool getmouselocation --shell)"
+
+        ACTIVE_MON=""
+        for MON in "${MONITORS[@]}"; do
+            if [ "$X" -ge "${MON_X1[$MON]}" ] && [ "$X" -lt "${MON_X2[$MON]}" ] &&
+               [ "$Y" -ge "${MON_Y1[$MON]}" ] && [ "$Y" -lt "${MON_Y2[$MON]}" ]; then
+                ACTIVE_MON="$MON"
+                break
+            fi
+        done
+
+        for MON in "${MONITORS[@]}"; do
+            TARGET="$ACTIVE_BRIGHTNESS"
+
+            if [ -f "$TOGGLE_FILE" ] && [ "$MON" != "$ACTIVE_MON" ]; then
+                TARGET="$DIM_BRIGHTNESS"
+            fi
+
+            if [ "${MON_LAST_BRIGHT[$MON]}" != "$TARGET" ]; then
+                xrandr --output "$MON" --brightness "$TARGET"
+                MON_LAST_BRIGHT["$MON"]="$TARGET"
+            fi
+        done
     fi
-
-    # -------- Mouse logic (FAST PATH) --------
-    eval "$(xdotool getmouselocation --shell)"
-
-    ACTIVE_MON=""
-
-    for MON in "${MONITORS[@]}"; do
-        if [ "$X" -ge "${MON_X1[$MON]}" ] && [ "$X" -lt "${MON_X2[$MON]}" ] &&
-           [ "$Y" -ge "${MON_Y1[$MON]}" ] && [ "$Y" -lt "${MON_Y2[$MON]}" ]; then
-            ACTIVE_MON="$MON"
-            break
-        fi
-    done
-
-    for MON in "${MONITORS[@]}"; do
-        TARGET="$ACTIVE_BRIGHTNESS"
-
-        if [ -f "$TOGGLE_FILE" ] && [ "$MON" != "$ACTIVE_MON" ]; then
-            TARGET="$DIM_BRIGHTNESS"
-        fi
-
-        if [ "${MON_LAST_BRIGHT[$MON]}" != "$TARGET" ]; then
-            xrandr --output "$MON" --brightness "$TARGET"
-            MON_LAST_BRIGHT["$MON"]="$TARGET"
-        fi
-    done
 
     sleep "$MOUSE_INTERVAL"
 done
