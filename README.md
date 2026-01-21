@@ -14,7 +14,7 @@ This script will auto dim whatever monitor your mouse is not on as well as auto 
 
 **This is the updated, stable version of the stand-alone release with added time-based auto-dim and optional gammma controls similar to the original fade-monitors-night-gamma script
 
-(Do not run alongside Fade Monitors Stand-Alone script.)
+(Do not run alongside other Fade Monitors scripts.)
 
 Requirements:
 
@@ -128,4 +128,4 @@ Configuratuion: (can all be changed in script)
 
 -The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more aggresive responsives at the cost of higher CPU activity.
 
--Do not run alongside Fade Monitors Stand-Alone script. Only one Fade monitors script should be running at a time to avoid conflicts and extra cpu usage. 
+-Only one Fade monitors script should be running at a time to avoid conflicts and extra cpu usage. 
