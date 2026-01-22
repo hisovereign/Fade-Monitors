@@ -9,9 +9,8 @@ This script will auto dim whatever monitor your mouse is not on
 
 **This is the updated stable and optimized version of the mouse-based auto-dim stand-alone script
 
-(Do not run alongside other Fade Monitors scripts.)
-
 -Improved architechture that reduces CPU consumption and prevents cumulative lag during repeated display layout changes
+
 
 
 Requirements:
@@ -95,4 +94,4 @@ Important Information
 
 -The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more aggresive responsives at the cost of higher CPU activity.
 
--Only one Fade Monitors script should be running at a time to avoid conflicts (brief flashes) and extra cpu usage.
+-Earlier versions sometimes casued brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been resolved with single-instance locking
