@@ -21,7 +21,7 @@ NIGHT_START=1700
 DAY_START=0600
 
 # Gamma control (optional)
-ENABLE_GAMMA=false
+ENABLE_GAMMA=true
 DAY_GAMMA="1.0:1.0:1.0"
 NIGHT_GAMMA="1.0:0.85:0.1"
 
@@ -29,8 +29,15 @@ NIGHT_GAMMA="1.0:0.85:0.1"
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
 
 # Poll intervals
-MOUSE_INTERVAL=0.1
+MOUSE_INTERVAL=0.05
 GEOM_INTERVAL=2
+
+# -----------------------------
+# SINGLE-INSTANCE LOCK
+# -----------------------------
+LOCKFILE="$HOME/.fade_mouse.lock"
+exec 9>"$LOCKFILE" || exit 1
+flock -n 9 || exit 0
 
 # -----------------------------
 # Internal state
@@ -51,9 +58,8 @@ restore_brightness() {
     for MON in "${MONITORS[@]}"; do
         xrandr --output "$MON" --brightness 1.0 --gamma 1.0:1.0:1.0
     done
-    exit
 }
-trap restore_brightness SIGINT SIGTERM
+trap restore_brightness EXIT SIGINT SIGTERM
 
 # -----------------------------
 # Read monitor geometry
