@@ -32,8 +32,8 @@ TOGGLE_FILE="$HOME/.fade_mouse_enabled"
 MOUSE_INTERVAL=0.1
 GEOM_INTERVAL=2
 
+# Stop file
 STOP_FILE="$HOME/.fade_mouse_stopped"
-
 if [ -f "$STOP_FILE" ]; then
     exit 0
 fi
@@ -44,7 +44,6 @@ fi
 LOCKFILE="$HOME/.fade_mouse.lock"
 exec 9>"$LOCKFILE" || exit 1
 flock -n 9 || exit 0
-
 
 # -----------------------------
 # Internal state
@@ -127,6 +126,8 @@ GEOM_HASH="$(xrandr --listmonitors | sha1sum | awk '{print $1}')"
 # -----------------------------
 # Main loop
 # -----------------------------
+MIN_BRIGHTNESS=0.1
+
 while true; do
     NOW=$(date +%s)
 
@@ -185,6 +186,10 @@ while true; do
         TARGET="$BASE_BRIGHTNESS"
         if [ -f "$TOGGLE_FILE" ] && [ "$MON" != "$ACTIVE_MON" ]; then
             TARGET="$DIM_BRIGHTNESS"
+        fi
+
+        if (( $(echo "$TARGET < $MIN_BRIGHTNESS" | bc -l) )); then
+            TARGET=$MIN_BRIGHTNESS
         fi
 
         # Only update if changed
