@@ -43,13 +43,14 @@ Installation:
 
 		chmod +x ~/.local/bin/fade-monitors-auto-2d-stable.sh
 
-Run script manually
+Run the script
 	
 	~/.local/bin/fade-monitors-auto-2d-stable.sh
-Stop
 
-	pkill -f fade-monitors-auto-2d-stable.sh
-	
+How to stop the script
+1. Move script out of ~/.local/bin
+2. Restart the computer
+
 Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 1. Install bindkeys
@@ -94,4 +95,4 @@ Important Information
 
 -The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more aggresive responsives at the cost of higher CPU activity.
 
--Earlier versions sometimes casued brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
+-Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
