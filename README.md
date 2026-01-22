@@ -2,7 +2,7 @@
 Mouse-aware monitor dimming with toggle (X11)
 
 
-**This version is outdated please use link below**
+**This version is outdated please use this link for updated version**
 https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/fade-monitors-auto-2d-stable.sh
 
 
