@@ -49,11 +49,14 @@ Run the script
 
 	~/.local/bin/fade-monitors-2d-time-based.sh
 
+
+
 How to stop the script
 1. Move script out of ~/.local/bin
 2. Restart the computer
 
-	
+
+
 Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 1. Install bindkeys
@@ -84,11 +87,15 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 
 
+
+
 Run script at start up
 
 1. Open Start up applications> click + then custom command>browse and select the script you downloaded
 
 2. Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
+
+
 
 
 
@@ -114,7 +121,7 @@ Configuratuion: (can all be changed in script)
 
 **Important Information**
 
--Earlier versions sometimes casued brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
+-Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
 
 -Having gamma on will conflict with other programs that alter gamma.
 
