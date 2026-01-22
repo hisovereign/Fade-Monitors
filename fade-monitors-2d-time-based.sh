@@ -18,7 +18,7 @@ DIM_BRIGHTNESS=0.2
 
 # Time window (24h, HHMM)
 NIGHT_START=1700
-DAY_START=0600
+DAY_START=0800
 
 # Gamma control (optional)
 ENABLE_GAMMA=false
@@ -81,7 +81,8 @@ read_monitors() {
     mapfile -t lines < <(xrandr --listmonitors | tail -n +2)
 
     for line in "${lines[@]}"; do
-        if [[ $line =~ ([0-9]+:[[:space:]]+[\+\*]*)([A-Za-z0-9-]+)[[:space:]]+([0-9]+)\/[0-9]+x([0-9]+)\/[0-9]+\+([0-9]+)\+([0-9]+) ]]; then
+        if [[ $line =~ ([0-9]+:[[:space:]]+[\+\*]*)\
+([A-Za-z0-9-]+)[[:space:]]+([0-9]+)\/[0-9]+x([0-9]+)\/[0-9]+\+([0-9]+)\+([0-9]+) ]]; then
             NAME="${BASH_REMATCH[2]}"
             WIDTH="${BASH_REMATCH[3]}"
             HEIGHT="${BASH_REMATCH[4]}"
