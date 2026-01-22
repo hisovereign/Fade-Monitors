@@ -45,15 +45,13 @@ Installation:
 
 		chmod +x ~/.local/bin/fade-monitors-2d-time-based.sh
 
-Run script manually
+Run the script
 
 	~/.local/bin/fade-monitors-2d-time-based.sh
 
-Stop
-
-	pkill -f fade-monitors-2d-time-based.sh
-
-
+How to stop the script
+1. Move script out of ~/.local/bin
+2. Restart the computer
 
 	
 Using xbindkeys (recommended) (copy/paste commands into terminal)
@@ -86,14 +84,11 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 
 
-
 Run script at start up
 
 1. Open Start up applications> click + then custom command>browse and select the script you downloaded
 
 2. Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
-
-
 
 
 
