@@ -9,6 +9,7 @@
 # Brightness levels
 ACTIVE_BRIGHTNESS=0.7
 DIM_BRIGHTNESS=0.2
+MIN_BRIGHTNESS=0.1   # <-- Minimum enforced
 
 # Toggle file
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
@@ -123,6 +124,11 @@ while true; do
 
             if [ -f "$TOGGLE_FILE" ] && [ "$MON" != "$ACTIVE_MON" ]; then
                 TARGET="$DIM_BRIGHTNESS"
+            fi
+
+            # Enforce minimum brightness
+            if (( $(echo "$TARGET < $MIN_BRIGHTNESS" | bc -l) )); then
+                TARGET=$MIN_BRIGHTNESS
             fi
 
             if [ "${MON_LAST_BRIGHT[$MON]}" != "$TARGET" ]; then
