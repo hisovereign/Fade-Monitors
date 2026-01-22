@@ -43,9 +43,8 @@ restore_brightness() {
     for MON in "${MONITORS[@]}"; do
         xrandr --output "$MON" --brightness 1.0
     done
-    exit
 }
-trap restore_brightness SIGINT SIGTERM
+trap restore_brightness EXIT SIGINT SIGTERM
 
 # -----------------------------
 # Read monitor geometry
