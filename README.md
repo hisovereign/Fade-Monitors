@@ -119,7 +119,7 @@ Configuratuion: (can all be changed in script)
 
 **Important Information**
 
--Earlier versions sometimes casued brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been resolved with single-instance locking
+-Earlier versions sometimes casued brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
 
 -Having gamma on will conflict with other programs that alter gamma.
 
