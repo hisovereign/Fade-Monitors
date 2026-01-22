@@ -93,7 +93,7 @@ Do the same for xbindkeys (click + then custom command and search for .xbindkeys
 
 Important Information
 
--Minimum brightsness logic has been enforced. If you change the minimum value and then change the other values you will be able to go past 0.1 however doing so will blackout monitors and you will need to ctrl + alt +F7, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will TEMPORARILY kill script and you can change values from script and restart computer.
+-Minimum brightsness logic has been enforced. If you change the minimum value and then change the other values you will be able to go past 0.1 however doing so will blackout monitors and you will need to ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will TEMPORARILY kill script and you can change values from script and restart computer.
 
 
 -The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more aggresive responsives at the cost of higher CPU activity.
