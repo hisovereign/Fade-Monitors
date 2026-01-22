@@ -122,9 +122,9 @@ Configuratuion: (can all be changed in script)
 
 **Important Information**
 
--With Gamma enabled, Cinnamon (X11) may briefly flash twice (two very fast visual redraws) during applet, display changes, time-based transitions, and reloading or restarting Cinnamon. This is expected X11 behavior. Disable Gamma to avoid it.
+-Earlier versions sometimes casued brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been resolved with single-instance locking
 
--Having gamma on will conflict with other programs that alter gamma
+-Having gamma on will conflict with other programs that alter gamma.
 
 -The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more aggresive responsives at the cost of higher CPU activity.
 
