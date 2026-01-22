@@ -21,7 +21,7 @@ NIGHT_START=1700
 DAY_START=0600
 
 # Gamma control (optional)
-ENABLE_GAMMA=true
+ENABLE_GAMMA=false
 DAY_GAMMA="1.0:1.0:1.0"
 NIGHT_GAMMA="1.0:0.85:0.1"
 
@@ -29,8 +29,14 @@ NIGHT_GAMMA="1.0:0.85:0.1"
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
 
 # Poll intervals
-MOUSE_INTERVAL=0.05
+MOUSE_INTERVAL=0.1
 GEOM_INTERVAL=2
+
+STOP_FILE="$HOME/.fade_mouse_stopped"
+
+if [ -f "$STOP_FILE" ]; then
+    exit 0
+fi
 
 # -----------------------------
 # SINGLE-INSTANCE LOCK
@@ -38,6 +44,7 @@ GEOM_INTERVAL=2
 LOCKFILE="$HOME/.fade_mouse.lock"
 exec 9>"$LOCKFILE" || exit 1
 flock -n 9 || exit 0
+
 
 # -----------------------------
 # Internal state
