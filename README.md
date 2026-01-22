@@ -95,4 +95,4 @@ Important Information
 
 -The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more aggresive responsives at the cost of higher CPU activity.
 
--Only one Fade Monitors script should be running at a time to avoid conflicts and extra cpu usage. 
+-Only one Fade Monitors script should be running at a time to avoid conflicts (brief flashes) and extra cpu usage.
