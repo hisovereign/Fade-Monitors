@@ -10,7 +10,7 @@ https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/fade-
 
 (These versions auto-detect monitor positions and have been optomized to the best of current my knowledge)
 
-
+⚠️ Note: This version does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes.
 
 
 # Fade-Monitors
@@ -166,3 +166,4 @@ Here 1050 is 17:30 and 360 is 06:00
 	xrandr --output <output-name> --brightness 1.0
 	
 ⚠️ Note: This script **does not work with Nightlight or Redshift**. Using them at the same time will cause conflicts with brightness and gamma adjustments.
+⚠️ Note: This version does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes.
