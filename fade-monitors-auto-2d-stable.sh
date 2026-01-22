@@ -20,6 +20,13 @@ MOUSE_INTERVAL=0.1
 GEOM_INTERVAL=2
 
 # -----------------------------
+# SINGLE-INSTANCE LOCK
+# -----------------------------
+LOCKFILE="$HOME/.fade_mouse.lock"
+exec 9>"$LOCKFILE" || exit 1
+flock -n 9 || exit 0
+
+# -----------------------------
 # Internal state
 # -----------------------------
 declare -A MON_X1 MON_X2 MON_Y1 MON_Y2 MON_LAST_BRIGHT
@@ -100,7 +107,7 @@ while true; do
     if [ "$GEOM_DIRTY" -eq 1 ]; then
         GEOM_DIRTY=0
     else
-        # -------- Mouse logic (fast path) --------
+        # -------- Mouse logic --------
         eval "$(xdotool getmouselocation --shell)"
 
         ACTIVE_MON=""
