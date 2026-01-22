@@ -12,6 +12,7 @@ https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/fade-
 
 ⚠️ Note: This version does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes.
 
+⚠️ Note: Changing brightness values to zero will blackout monitors and you will need to ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-night-gamma.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will TEMPORARILY kill script and you can change values from script and restart computer.
 
 # Fade-Monitors
 Mouse-aware and time based monitor dimming with gamma control (X11)
