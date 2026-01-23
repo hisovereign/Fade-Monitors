@@ -18,7 +18,7 @@ DIM_BRIGHTNESS=0.2
 
 # Time window (24h, HHMM)
 NIGHT_START=1700
-DAY_START=0800
+DAY_START=0730
 
 # Gamma control (optional)
 ENABLE_GAMMA=false
@@ -32,11 +32,8 @@ TOGGLE_FILE="$HOME/.fade_mouse_enabled"
 MOUSE_INTERVAL=0.1
 GEOM_INTERVAL=2
 
-# Stop file
+# Stop file - check in loop
 STOP_FILE="$HOME/.fade_mouse_stopped"
-if [ -f "$STOP_FILE" ]; then
-    exit 0
-fi
 
 # -----------------------------
 # SINGLE-INSTANCE LOCK
@@ -58,14 +55,22 @@ LAST_GAMMA_STATE=""
 LAST_TIME_STATE=""
 
 # -----------------------------
-# Cleanup
+# Cleanup - Restore everything to normal defaults
 # -----------------------------
-restore_brightness() {
+restore_defaults() {
     for MON in "${MONITORS[@]}"; do
         xrandr --output "$MON" --brightness 1.0 --gamma 1.0:1.0:1.0
     done
 }
-trap restore_brightness EXIT SIGINT SIGTERM
+
+cleanup() {
+    restore_defaults
+    # Release lock explicitly
+    flock -u 9
+    exit 0
+}
+
+trap cleanup EXIT SIGINT SIGTERM
 
 # -----------------------------
 # Read monitor geometry
@@ -130,6 +135,12 @@ GEOM_HASH="$(xrandr --listmonitors | sha1sum | awk '{print $1}')"
 MIN_BRIGHTNESS=0.1
 
 while true; do
+    # Check stop file - NOW IN LOOP
+    if [ -f "$STOP_FILE" ]; then
+        rm -f "$STOP_FILE"
+        exit 0
+    fi
+    
     NOW=$(date +%s)
 
     # -------- Geometry check (slow path) --------
@@ -171,7 +182,7 @@ while true; do
     fi
 
     # -------- Mouse logic --------
-    eval "$(xdotool getmouselocation --shell)"
+    eval "$(xdotool getmouselocation --shell 2>/dev/null || echo "X=0;Y=0")"
 
     ACTIVE_MON=""
     for MON in "${MONITORS[@]}"; do
