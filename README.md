@@ -1,10 +1,8 @@
 # Fade-Monitors
-Mouse-aware and time-based monitor dimming with optional gamma control for (X11)
+## Mouse-aware and time-based monitor dimming with optional gamma control for (X11)
 
 
-
-
-This script will auto dim whatever monitor your mouse is not on as well as auto dim at specified times with optional gamma changes
+-This script will auto dim whatever monitor your mouse is not on as well as auto dim at specified times with optional gamma changes
 
 -Mouse-based dimming can be toggled off with a hotkey and defaults changed near top of script
 
@@ -13,7 +11,7 @@ This script will auto dim whatever monitor your mouse is not on as well as auto 
 **This is the updated, stable version of the stand-alone release with added time-based auto-dim and optional gammma controls similar to the original fade-monitors-night-gamma script
 
 
-Requirements:
+## Requirements:
 
 -x11 session 
 -xrandr - controls montior brightness/gamma
@@ -34,7 +32,7 @@ Optional (for hotkey support):
 
 
 
-Installation:
+## Installation:
 
 1. Download the script
 	(click on the fade-monitors-2d-time-based script then to the right of where it says RAW click download raw file)
@@ -51,13 +49,17 @@ Run the script
 
 
 
-How to stop the script
-1. Move script out of ~/.local/bin
-2. Restart the computer
+## How to stop the script
+
+1. Move script out of ~/.local/bin and restart the computer or
+
+2. Copy/paste in terminal
+   
+		pkill -f fade-monitors-2d-time-based.sh
 
 
-
-Using xbindkeys (recommended) (copy/paste commands into terminal)
+## Using xbindkeys (recommended) 
+(copy/paste commands into terminal)
 
 1. Install bindkeys
 
@@ -88,8 +90,7 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 
 
-
-Run script at start up
+## Run script at start up
 
 1. Open Start up applications> click + then custom command>browse and select the script you downloaded
 
@@ -99,32 +100,32 @@ Run script at start up
 
 
 
-Configuratuion: (can all be changed in script)
+## Configuratuion: (can all be changed in script)
 
 -You only need to change the actual values e.g. 0.8 for day brightness or 1630 for night start.
 
 -Gamma is set to off (false) by default; to change make it (=true)
 
-# Day / Night brightness
+**Day / Night brightness**
 	DAY_BRIGHTNESS=0.7
 	NIGHT_BRIGHTNESS=0.5
 	DIM_BRIGHTNESS=0.2
 
-# Time window (24h, HHMM)
+**Time window (24h, HHMM)**
 	NIGHT_START=1630   # 16:30
 	DAY_START=0600     # 06:00
 
-# Gamma control (optional)
-	ENABLE_GAMMA=false
+**Gamma control (optional)**
+    ENABLE_GAMMA=false
 	DAY_GAMMA="1.0:1.0:1.0"
 	NIGHT_GAMMA="1.0:0.85:0.7"
 
-**Important Information**
+## Important Information
 
--Minimum brightness logic has been enforced. However previous version of this script can still set brightness values to 0.0. Doing so will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will TEMPORARILY kill script and you can change values from script or take script out of local/bin: then restart computer.
+-WARNING- Minimum brightness logic has been enforced. However previous version of this script can still set brightness values to 0.0. Doing so will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will kill the script and you will need to change values before restart.
 
 -Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
 
 -Having gamma on will conflict with other programs that alter gamma.
 
--The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more aggresive responsives at the cost of higher CPU activity.
+-The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more even lower cpu usage. 0.2 works, 0.3 is functional but mouse-based dimming may not trigger with fast mouse movements
