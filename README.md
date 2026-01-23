@@ -1,7 +1,7 @@
 # Fade-Monitors
-Mouse-aware monitor dimming (X11)
+## Mouse-aware monitor dimming (X11)
 
-This script will auto dim whatever monitor your mouse is not on
+**This script will auto dim whatever monitor your mouse is not on**
 	
 -Mouse-based dimming can be toggled off with a hotkey.
 
@@ -13,7 +13,7 @@ This script will auto dim whatever monitor your mouse is not on
 
 
 
-Requirements:
+### Requirements:
 
 -x11 session (not Wayland)
 -xrandr - controls montior brightness/gamma
@@ -32,7 +32,7 @@ Optional (for hotkey support):
 	sudo apt install xbindkeys
 
 
-Installation:
+### Installation:
 
 1. Download the script
 	(click on fade-monitors-auto-2d-stable and to the right of where it says RAW click download raw file)
@@ -48,10 +48,13 @@ Run the script
 	~/.local/bin/fade-monitors-auto-2d-stable.sh
 
 How to stop the script
-1. Move script out of ~/.local/bin
-2. Restart the computer
+1. Move script out of ~/.local/bin and restart the computer
+or
+2. Open a terminal and copy/paste then hit enter
 
-Using xbindkeys (recommended) (copy/paste commands into terminal)
+		pkill -f fade-monitors-auto-2d-stable.sh
+
+### Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 1. Install bindkeys
 
@@ -79,7 +82,7 @@ Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 
 
-Run script at start up
+### Run script at start up
 
 Open Start up applications> click + then custom command>browse and select the script you downloaded
 
@@ -91,12 +94,12 @@ Do the same for xbindkeys (click + then custom command and search for .xbindkeys
 	
 	xrandr --output <output-name> --brightness 1.0
 
-Important Information
+### Important Information
 
--Minimum brightsness logic has been enforced. If you change the minimum value and then change the other values you will be able to go past 0.1 however doing so will blackout monitors and you will need to ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-auto-2d-stable.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will TEMPORARILY kill script and you can change values from script and restart computer.
+-Warning Blackout Monitor Warning **If you change the minimum values to zero it will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-auto-2d-stable.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7).** 
 
 
--The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer more aggresive responsives at the cost of higher CPU activity.
+-The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer even less cpu usage at cost of monitor dim lag. 0.2 will work. 0.3 is still functional but fast mouse movements may not trigger monitor dim.
 
 
 -Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
