@@ -37,7 +37,7 @@ LAST_GEOM_CHECK=0
 GEOM_DIRTY=0
 
 # -----------------------------
-# Cleanup
+# Cleanup - FIXED
 # -----------------------------
 restore_brightness() {
     for MON in "${MONITORS[@]}"; do
@@ -45,7 +45,13 @@ restore_brightness() {
     done
 }
 
-trap 'restore_brightness; exit' EXIT SIGINT SIGTERM
+cleanup() {
+    restore_brightness
+    flock -u 9  # Release lock
+    exit 0
+}
+
+trap cleanup EXIT SIGINT SIGTERM
 
 # -----------------------------
 # Read monitor geometry
@@ -109,8 +115,8 @@ while true; do
     if [ "$GEOM_DIRTY" -eq 1 ]; then
         GEOM_DIRTY=0
     else
-        # -------- Mouse logic --------
-        eval "$(xdotool getmouselocation --shell)"
+        # -------- Mouse logic WITH ERROR HANDLING --------
+        eval "$(xdotool getmouselocation --shell 2>/dev/null || echo "X=0;Y=0")"
 
         ACTIVE_MON=""
         for MON in "${MONITORS[@]}"; do
