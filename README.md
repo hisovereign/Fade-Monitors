@@ -121,6 +121,8 @@ Configuratuion: (can all be changed in script)
 
 **Important Information**
 
+-Minimum brightness logic has been enforced. However previous version of this script can still set brightness values to 0.0. Doing so will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will TEMPORARILY kill script and you can change values from script or take script out of local/bin: then restart computer.
+
 -Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
 
 -Having gamma on will conflict with other programs that alter gamma.
