@@ -9,7 +9,6 @@
 # Brightness levels
 ACTIVE_BRIGHTNESS=0.7
 DIM_BRIGHTNESS=0.2
-MIN_BRIGHTNESS=0.1   # <-- Minimum enforced
 
 # Toggle file
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
@@ -45,7 +44,8 @@ restore_brightness() {
         xrandr --output "$MON" --brightness 1.0
     done
 }
-trap restore_brightness EXIT SIGINT SIGTERM
+
+trap 'restore_brightness; exit' EXIT SIGINT SIGTERM
 
 # -----------------------------
 # Read monitor geometry
@@ -93,7 +93,7 @@ GEOM_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
 while true; do
     NOW=$(date +%s)
 
-    # -------- Geometry check (slow path) --------
+    # -------- Geometry check --------
     if (( NOW - LAST_GEOM_CHECK >= GEOM_INTERVAL )); then
         LAST_GEOM_CHECK=$NOW
         XRANDR_LIST=$(xrandr --listmonitors)
@@ -126,11 +126,6 @@ while true; do
 
             if [ -f "$TOGGLE_FILE" ] && [ "$MON" != "$ACTIVE_MON" ]; then
                 TARGET="$DIM_BRIGHTNESS"
-            fi
-
-            # Enforce minimum brightness
-            if (( $(echo "$TARGET < $MIN_BRIGHTNESS" | bc -l) )); then
-                TARGET=$MIN_BRIGHTNESS
             fi
 
             if [ "${MON_LAST_BRIGHT[$MON]}" != "$TARGET" ]; then
