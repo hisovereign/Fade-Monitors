@@ -122,7 +122,7 @@ Run the script
 
 ## Important Information
 
-!Warning Minimum brightness logic has been enforced. However previous version of this script can still set brightness values to zero. Doing so will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will kill the script and you will need to change values before restart.
+[!WARNING] Minimum brightness logic has been implemented. However, you can just delete it. Previous version of this script can also still set brightness values to zero. Doing so will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will kill the script and you will need to change values before restart.
 
 -Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
 
