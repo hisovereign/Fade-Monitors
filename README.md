@@ -10,7 +10,7 @@ https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/READM
 
 (These versions auto-detect monitor positions and have been optomized to the best of current my knowledge)
 
-**This is the oringinal Fade Monitors script. If you are just looking for mouse-based monitor dimming please use the first link above.** 
+**This is the oringinal Fade Monitors script. If you are just looking to try the script please use the first link above.** 
 ⚠️ Note: This version does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes.
 
 ⚠️ Note: Changing brightness values to zero will blackout monitors and you will need to ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-night-gamma.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will TEMPORARILY kill script and you can change values from script and restart computer.
