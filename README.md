@@ -4,16 +4,16 @@
 https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable-time-based/README.md
 
 
-## FOR STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming only)
+## FOR STANDALONE BRANCH (Mouse-Based Auto-Detecting 2D Monitor Dimming only)
 
 https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/README.md
 
-(These versions auto-detect monitor positions and have been optomized to the best of current my knowledge)
+(These versions have been stabilized, auto-detect monitor positions and have been optomized to the best of current my knowledge)
 
-**This is the original Fade Monitors script. If you are just looking to try the script please use the first link above.** 
-⚠️ Note: This version does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes.
 
-⚠️ Note: Changing brightness values to zero will blackout monitors and you will need to ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-night-gamma.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will TEMPORARILY kill script and you can change values from script and restart computer.
+⚠️ Note: This version does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes and will increase cpu usage.
+
+⚠️ Note: Changing brightness values to zero will blackout monitors and you will need to ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-night-gamma.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will temporarily kill script and you can then change values and restart computer.
 
 # Fade-Monitors
 Mouse-aware and time based monitor dimming with gamma control (X11)
@@ -135,7 +135,7 @@ Configuratuion: (can all be changed in script)
 Default times are 06:00 and 17:30
 Default auto dim for inactive monitor 20% 
 Default brightness/gamma at 100% between 06:00 - 17:30
-Default dim level between 17:30 - 06:00: 60% brightness 
+Default dim level between 17:30 - 06:00 60% brightness 
 Default gamma between 17:30 - 06:00 is set to "warm" to reduce blue light 
 
 
@@ -168,4 +168,3 @@ Here 1050 is 17:30 and 360 is 06:00
 	xrandr --output <output-name> --brightness 1.0
 	
 ⚠️ Note: This script **does not work with Nightlight or Redshift**. Using them at the same time will cause conflicts with brightness and gamma adjustments.
-⚠️ Note: This version does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes.
