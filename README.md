@@ -1,15 +1,16 @@
 
-**THIS IS THE ORIGINAL FADE MONITORS SCRIPT. PLEASE USE THE UPDATED RELEASE FROM CURRENT BRANCH IN LINK BELOW**
+# THIS IS THE ORIGINAL FADE MONITORS SCRIPT. PLEASE USE THE UPDATED RELEASE FROM CURRENT BRANCH IN LINK BELOW
 
-https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable-time-based/fade-monitors-2d-time-based.sh
+https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable-time-based/README.md
 
 
-**FOR STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming only)
+## FOR STANDALONE BRANCH (Mouse-Based Auto-Detect 2D Per-Monitor Dimming only)
 
-https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/fade-monitors-auto-2d-stable.sh
+https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/README.md
 
 (These versions auto-detect monitor positions and have been optomized to the best of current my knowledge)
 
+**This is the oringinal Fade Monitors script. If you are just looking for mouse-based monitor dimming please use the first link above.** 
 ⚠️ Note: This version does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes.
 
 ⚠️ Note: Changing brightness values to zero will blackout monitors and you will need to ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-night-gamma.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will TEMPORARILY kill script and you can change values from script and restart computer.
