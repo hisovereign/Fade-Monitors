@@ -61,9 +61,9 @@ Run the script
 
 ## How to stop the script
 
-1. Move script out of ~/.local/bin and restart the computer or
+1. Close the terminal you ran the script in or
 
-2. Copy/paste in terminal
+2. Copy/paste in new terminal
    
 		pkill -f fade-monitors-2d-time-based.sh
 
