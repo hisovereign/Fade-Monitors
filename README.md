@@ -22,7 +22,7 @@
 -xdotool - reads mouse position
 
 
-### Install requirements (copy/paste commands into terminal)
+### Install requirements (copy, paste(ctrl + shift + v) commands into terminal)
 Open menu and search for terminal.
 
 Copy/paste then hit enter
