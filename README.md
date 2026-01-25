@@ -21,7 +21,7 @@
 
 
 
-##Install requirements (copy/paste commands into terminal)
+## Install requirements (copy/paste commands into terminal)
 
 Open menu and search for terminal.
 
