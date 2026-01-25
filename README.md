@@ -14,12 +14,22 @@
 ## Requirements:
 
 -x11 session 
+
 -xrandr - controls montior brightness/gamma
+
 -xdotool - reads mouse position
 
 
 
-Install requirements (copy/paste commands into terminal)
+##Install requirements (copy/paste commands into terminal)
+
+Open menu and search for terminal.
+
+Copy/paste then hit enter
+	
+	sudo apt-get update
+
+Then install
 
 	sudo apt install x11-xserver-utils xdotool
 
@@ -37,7 +47,7 @@ Optional (for hotkey support):
 1. Download the script
 	(click on the fade-monitors-2d-time-based script then to the right of where it says RAW click download raw file)
 
-2. Move it to ~/.local/bin
+2. Move it to ~/.local/bin  (if you don't see it in your home folder right click>show hidden files)
 
 3. Make the script executable (open up a terminal and copy/paste commands then hit enter)
 
@@ -106,23 +116,26 @@ Run the script
 
 -Gamma is set to off (false) by default; to change make it (=true)
 
-**Day / Night brightness**
+  Day / Night brightness
+    
 	DAY_BRIGHTNESS=0.7
 	NIGHT_BRIGHTNESS=0.5
 	DIM_BRIGHTNESS=0.2
 
-**Time window (24h, HHMM)**
+Time window (24h, HHMM)**
+	
 	NIGHT_START=1630   # 16:30
 	DAY_START=0600     # 06:00
 
-**Gamma control (optional)**
-    ENABLE_GAMMA=false
+Gamma control (optional)**
+    
+	ENABLE_GAMMA=false
 	DAY_GAMMA="1.0:1.0:1.0"
 	NIGHT_GAMMA="1.0:0.85:0.7"
 
 ## Important Information
 
-[!WARNING] Minimum brightness logic has been implemented. However, you can just delete it. Previous version of this script can also still set brightness values to zero. Doing so will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will kill the script and you will need to change values before restart.
+![WARNING] Minimum brightness logic has been implemented. However, you can just delete it. Previous version of this script can also still set brightness values to zero. Doing so will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will kill the script and you will need to change values before restart.
 
 -Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
 
