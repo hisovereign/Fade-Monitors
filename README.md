@@ -60,7 +60,7 @@ How to stop the script
 
 1. Close the terminal you ran the script in or
 
-2. Open a terminal, copy/paste then hit enter
+2. Open a new terminal, copy/paste then hit enter
 
 		pkill -f fade-monitors-auto-2d-stable.sh
 
