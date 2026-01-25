@@ -3,7 +3,6 @@
 
 https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable-time-based/README.md
 
-**Applet is under review but if trying on your local machine only the time-based script works currently**
 
 
 ## FOR STANDALONE BRANCH (Mouse-Based Auto-Detecting 2D Monitor Dimming only)
