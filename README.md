@@ -15,12 +15,21 @@
 
 ### Requirements:
 
--x11 session (not Wayland)
+-x11 session
+
 -xrandr - controls montior brightness/gamma
+
 -xdotool - reads mouse position
 
 
-Install requirements (copy/paste commands into terminal)
+### Install requirements (copy/paste commands into terminal)
+Open menu and search for terminal.
+
+Copy/paste then hit enter
+
+	sudo apt-get update
+	
+Then install
 
 	sudo apt install x11-xserver-utils xdotool
 
@@ -37,7 +46,7 @@ Optional (for hotkey support):
 1. Download the script
 	(click on fade-monitors-auto-2d-stable and to the right of where it says RAW click download raw file)
 
-2. Move it to ~/.local/bin
+2. Move it to ~/.local/bin 
 
 3. Make the script executable (open up a terminal and copy/paste commands then hit enter)
 
@@ -48,9 +57,10 @@ Run the script
 	~/.local/bin/fade-monitors-auto-2d-stable.sh
 
 How to stop the script
-1. Move script out of ~/.local/bin and restart the computer
-or
-2. Open a terminal and copy/paste then hit enter
+
+1. Close the terminal you ran the script in or
+
+2. Open a terminal, copy/paste then hit enter
 
 		pkill -f fade-monitors-auto-2d-stable.sh
 
