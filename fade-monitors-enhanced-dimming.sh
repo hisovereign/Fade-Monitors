@@ -1,6 +1,6 @@
 #!/bin/bash
 # -----------------------------
-# Enhanced Per-Monitor Dimming EXPERIMENTAL
+# Enhanced Per-Monitor Dimming
 # Features:
 # - Per-monitor mouse-based dimming
 # - Idle timeout dimming (all monitors)
@@ -20,7 +20,7 @@ DIM_BRIGHTNESS=0.2         # Other monitors (when toggle ON)
 IDLE_BRIGHTNESS=0.1        # All monitors when idle
 
 # Idle settings
-IDLE_TIMEOUT=60            # Seconds of inactivity before idle dim (1 minute)
+IDLE_TIMEOUT=10            # Seconds of inactivity before idle dim (1 minute)
 IDLE_ENABLED=true          # Set to false to disable idle dimming
 
 # Smooth dimming settings
@@ -39,12 +39,25 @@ MOUSE_INTERVAL=0.1         # Mouse position polling
 GEOM_INTERVAL=5            # Monitor configuration checks
 IDLE_CHECK_INTERVAL=1      # Idle state checks (less frequent)
 
+# Logging (set to true for debugging)
+ENABLE_LOGGING=false
+LOG_FILE="/tmp/fade_monitors.log"
+
+# -----------------------------
+# LOGGING FUNCTION
+# -----------------------------
+log_message() {
+    if [ "$ENABLE_LOGGING" = true ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
+    fi
+}
+
 # -----------------------------
 # SINGLE-INSTANCE LOCK
 # -----------------------------
 LOCKFILE="$HOME/.fade_mouse.lock"
-exec 9>"$LOCKFILE" || exit 1
-flock -n 9 || exit 0
+exec 9>"$LOCKFILE" || { echo "Failed to create lock file" >&2; exit 1; }
+flock -n 9 || { echo "Another instance is already running" >&2; exit 0; }
 
 # -----------------------------
 # Internal state variables
@@ -78,27 +91,41 @@ check_dependencies() {
     # Check xrandr
     if ! command -v xrandr &> /dev/null; then
         missing+=("xrandr")
+        echo "ERROR: xrandr not found. Required for monitor control." >&2
+        echo "Install with: sudo apt-get install x11-xserver-utils" >&2
     fi
     
     # Check xdotool
     if ! command -v xdotool &> /dev/null; then
         missing+=("xdotool")
+        echo "ERROR: xdotool not found. Required for mouse tracking." >&2
+        echo "Install with: sudo apt-get install xdotool" >&2
     fi
     
-    # Check xprintidle (for idle detection)
-    if [ "$IDLE_ENABLED" = true ] && ! command -v xprintidle &> /dev/null; then
-        echo "WARNING: xprintidle not found. Install with: sudo apt-get install x11-utils" >&2
-        echo "Idle dimming will be disabled." >&2
-        IDLE_ENABLED=false
+    # Check bc for floating point math
+    if ! command -v bc &> /dev/null; then
+        missing+=("bc")
+        echo "ERROR: bc not found. Required for brightness calculations." >&2
+        echo "Install with: sudo apt-get install bc" >&2
+    fi
+    
+    # Check xprintidle (for idle detection) - CORRECT PACKAGE NAME
+    if [ "$IDLE_ENABLED" = true ]; then
+        if ! command -v xprintidle &> /dev/null; then
+            echo "WARNING: xprintidle not found. Install with: sudo apt-get install xprintidle" >&2
+            echo "Idle dimming will be disabled. Continuing with mouse-only dimming." >&2
+            IDLE_ENABLED=false
+        fi
     fi
     
     if [ ${#missing[@]} -gt 0 ]; then
-        echo "ERROR: Missing required dependencies:" >&2
-        for dep in "${missing[@]}"; do
-            echo "  - $dep" >&2
-        done
-        echo "Install with: sudo apt-get install ${missing[*]}" >&2
+        echo "FATAL: Missing required dependencies. Please install them and try again." >&2
         exit 1
+    fi
+    
+    # Optional dependencies warnings
+    if [ "$IDLE_ENABLED" = false ] && [ -n "$(command -v xprintidle)" ]; then
+        echo "INFO: xprintidle is installed but idle dimming is disabled in config." >&2
     fi
 }
 
@@ -108,15 +135,20 @@ check_dependencies
 # CLEANUP & SIGNAL HANDLING
 # -----------------------------
 restore_defaults() {
+    log_message "Restoring defaults"
     # Restore all monitors to normal brightness
     for MON in "${MONITORS[@]}"; do
-        xrandr --output "$MON" --brightness 1.0 --gamma 1.0:1.0:1.0 2>/dev/null
+        xrandr --output "$MON" --brightness 1.0 --gamma 1.0:1.0:1.0 2>/dev/null && \
+            log_message "Restored monitor $MON to 1.0 brightness" || \
+            log_message "Warning: Failed to restore monitor $MON"
     done
 }
 
 cleanup() {
+    log_message "Cleanup initiated"
     restore_defaults
     flock -u 9  # Release lock
+    log_message "Script exited cleanly"
     exit 0
 }
 
@@ -133,8 +165,17 @@ read_monitors() {
     MON_Y2=()
 
     # Get monitor information from xrandr
-    mapfile -t lines < <(xrandr --listmonitors | tail -n +2)
+    local xrandr_output
+    xrandr_output=$(xrandr --listmonitors 2>/dev/null)
+    
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to get monitor information from xrandr" >&2
+        return 1
+    fi
+    
+    mapfile -t lines < <(echo "$xrandr_output" | tail -n +2)
 
+    log_message "Reading monitor configuration"
     for line in "${lines[@]}"; do
         if [[ $line =~ ([0-9]+:[[:space:]]+[\+\*]*)\
 ([A-Za-z0-9-]+)[[:space:]]+([0-9]+)\/[0-9]+x([0-9]+)\/[0-9]+\+([0-9]+)\+([0-9]+) ]]; then
@@ -151,8 +192,20 @@ read_monitors() {
             MON_Y2["$NAME"]=$((Y_OFF + HEIGHT))
             MON_CURRENT_BRIGHT["$NAME"]=1.0  # Start at full brightness
             MON_TARGET_BRIGHT["$NAME"]=1.0   # Target is full brightness initially
+            
+            log_message "Found monitor: $NAME at ${X_OFF}x${Y_OFF}, size ${WIDTH}x${HEIGHT}"
+        else
+            log_message "Warning: Could not parse monitor line: $line"
         fi
     done
+    
+    if [ ${#MONITORS[@]} -eq 0 ]; then
+        echo "ERROR: No monitors found!" >&2
+        return 1
+    fi
+    
+    log_message "Total monitors found: ${#MONITORS[@]}"
+    return 0
 }
 
 # -----------------------------
@@ -162,10 +215,19 @@ set_brightness_instant() {
     local monitor="$1"
     local brightness="$2"
     
-    # Only update if the brightness actually changed
-    if [ "$(echo "${MON_CURRENT_BRIGHT[$monitor]} != $brightness" | bc -l)" -eq 1 ]; then
-        xrandr --output "$monitor" --brightness "$brightness" 2>/dev/null
-        MON_CURRENT_BRIGHT["$monitor"]="$brightness"
+    # Use bc for accurate floating point comparison
+    local current="${MON_CURRENT_BRIGHT[$monitor]:-1.0}"
+    local diff
+    diff=$(echo "scale=3; $current - $brightness" | bc | awk '{if ($1<0) print -$1; else print $1}')
+    
+    # Only update if the brightness actually changed by more than 0.001
+    if [ "$(echo "$diff > 0.001" | bc -l)" -eq 1 ]; then
+        if xrandr --output "$monitor" --brightness "$brightness" 2>/dev/null; then
+            MON_CURRENT_BRIGHT["$monitor"]="$brightness"
+            log_message "Set $monitor to brightness $brightness (instant)"
+        else
+            log_message "Error: Failed to set $monitor to brightness $brightness"
+        fi
     fi
 }
 
@@ -175,27 +237,29 @@ set_brightness_smooth() {
     local current="${MON_CURRENT_BRIGHT[$monitor]:-1.0}"
     
     # If instant dimming is enabled, or if the change is very small, do it instantly
-    if [ "$INSTANT_DIM" = true ] || \
-       [ "$(echo "scale=3; $target - $current" | bc | awk '{if ($1<0) print -$1; else print $1}')" = "0" ]; then
+    local diff
+    diff=$(echo "scale=3; $current - $target" | bc | awk '{if ($1<0) print -$1; else print $1}')
+    
+    if [ "$INSTANT_DIM" = true ] || [ "$(echo "$diff < 0.01" | bc -l)" -eq 1 ]; then
         set_brightness_instant "$monitor" "$target"
         return
     fi
     
+    log_message "Smooth transition for $monitor: $current -> $target ($SMOOTH_STEPS steps)"
+    
     # Calculate step size
     local step
-    step=$(echo "scale=3; ($target - $current) / $SMOOTH_STEPS" | bc)
+    step=$(echo "scale=4; ($target - $current) / $SMOOTH_STEPS" | bc)
     
     # Perform smooth transition
     for ((i=1; i<=SMOOTH_STEPS; i++)); do
-        # Break if we get activity during transition (quick restoration)
-        if [ "$i" -gt 1 ] && [ $((i % 4)) -eq 0 ] && [ "$CURRENT_STATE" = "restoring" ]; then
-            # Quick check for activity during restore
-            if [ "$(get_idle_time)" -lt "$IDLE_TIMEOUT" ]; then
-                break  # Activity detected, exit early
-            fi
+        # Check for stop file during long transitions
+        if [ -f "$STOP_FILE" ]; then
+            log_message "Stop file detected during smooth transition"
+            break
         fi
         
-        current=$(echo "scale=3; $current + $step" | bc)
+        current=$(echo "scale=4; $current + $step" | bc)
         
         # Clamp value between 0 and 1
         if [ "$(echo "$current < 0" | bc -l)" -eq 1 ]; then
@@ -211,6 +275,7 @@ set_brightness_smooth() {
     # Ensure final target is set
     xrandr --output "$monitor" --brightness "$target" 2>/dev/null
     MON_CURRENT_BRIGHT["$monitor"]="$target"
+    log_message "Completed smooth transition for $monitor to $target"
 }
 
 # -----------------------------
@@ -218,63 +283,77 @@ set_brightness_smooth() {
 # -----------------------------
 get_idle_time() {
     # Returns idle time in seconds (0 if xprintidle fails or not available)
-    if [ "$IDLE_ENABLED" = false ] || ! command -v xprintidle &> /dev/null; then
+    if [ "$IDLE_ENABLED" = false ]; then
         echo "0"
-        return
+        return 0
     fi
     
     local idle_ms
-    idle_ms=$(xprintidle 2>/dev/null || echo "0")
-    echo "$((idle_ms / 1000))"
+    if idle_ms=$(xprintidle 2>/dev/null); then
+        echo "$((idle_ms / 1000))"
+    else
+        log_message "Warning: xprintidle command failed"
+        echo "0"
+    fi
 }
 
 check_mouse_movement() {
     # Check if mouse has moved since last check
-    eval "$(xdotool getmouselocation --shell 2>/dev/null || echo "X=0;Y=0")"
-    
-    if [ "$X" != "$LAST_X" ] || [ "$Y" != "$LAST_Y" ]; then
-        LAST_X="$X"
-        LAST_Y="$Y"
-        return 0  # Mouse moved
+    local mouse_output
+    if mouse_output=$(xdotool getmouselocation --shell 2>/dev/null); then
+        eval "$mouse_output"
+        
+        if [ "$X" != "$LAST_X" ] || [ "$Y" != "$LAST_Y" ]; then
+            LAST_X="$X"
+            LAST_Y="$Y"
+            LAST_ACTIVITY_TIME=$(date +%s)
+            return 0  # Mouse moved
+        fi
+    else
+        log_message "Warning: Failed to get mouse location"
     fi
-    return 1  # Mouse stationary
+    return 1  # Mouse stationary or error
 }
 
 update_activity() {
-    # Update last activity time based on mouse/keyboard activity
-    local idle_time
-    idle_time=$(get_idle_time)
-    
-    if [ "$idle_time" -lt "$IDLE_TIMEOUT" ]; then
-        LAST_ACTIVITY_TIME=$(date +%s)
-        return 0  # Activity detected
-    fi
-    return 1  # Idle
+    # Update last activity time
+    LAST_ACTIVITY_TIME=$(date +%s)
 }
 
 check_state_transition() {
     # Check and update the current state based on activity
+    if [ "$IDLE_ENABLED" = false ]; then
+        # If idle is disabled, always stay in active state
+        if [ "$CURRENT_STATE" != "active" ]; then
+            log_message "Idle disabled, returning to active state"
+            CURRENT_STATE="active"
+            return 2
+        fi
+        return 0
+    fi
+    
     local idle_time
     idle_time=$(get_idle_time)
     
     case "$CURRENT_STATE" in
         "active")
-            if [ "$IDLE_ENABLED" = true ] && [ "$idle_time" -ge "$IDLE_TIMEOUT" ]; then
+            if [ "$idle_time" -ge "$IDLE_TIMEOUT" ]; then
+                log_message "Entering idle state (idle for ${idle_time}s)"
                 CURRENT_STATE="idle"
-                echo "[$(date '+%H:%M:%S')] Entering idle state" >&2
                 return 1  # State changed to idle
             fi
             ;;
         "idle")
             if [ "$idle_time" -lt "$IDLE_TIMEOUT" ]; then
+                log_message "Activity detected, restoring brightness (idle for ${idle_time}s)"
                 CURRENT_STATE="restoring"
-                echo "[$(date '+%H:%M:%S')] Activity detected, restoring brightness" >&2
                 return 2  # State changed to restoring
             fi
             ;;
         "restoring")
             # Once we start restoring, we should quickly transition to active
             CURRENT_STATE="active"
+            log_message "Restoration complete, returning to active state"
             return 0  # State changed to active
             ;;
     esac
@@ -286,8 +365,10 @@ check_state_transition() {
 # -----------------------------
 apply_idle_brightness() {
     # Set all monitors to idle brightness
+    log_message "Applying idle brightness ($IDLE_BRIGHTNESS) to all monitors"
     for MON in "${MONITORS[@]}"; do
-        if [ "$(echo "${MON_CURRENT_BRIGHT[$monitor]} != $IDLE_BRIGHTNESS" | bc -l)" -eq 1 ]; then
+        local current="${MON_CURRENT_BRIGHT[$MON]:-1.0}"
+        if [ "$(echo "$current != $IDLE_BRIGHTNESS" | bc -l)" -eq 1 ]; then
             MON_TARGET_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
             set_brightness_smooth "$MON" "$IDLE_BRIGHTNESS"
         fi
@@ -299,20 +380,34 @@ apply_active_brightness() {
     local active_mon=""
     
     # Get current mouse position
-    eval "$(xdotool getmouselocation --shell 2>/dev/null || echo "X=0;Y=0")"
+    local mouse_output
+    if mouse_output=$(xdotool getmouselocation --shell 2>/dev/null); then
+        eval "$mouse_output"
+    else
+        # Default to monitor 0 if we can't get mouse position
+        X=0
+        Y=0
+        if [ ${#MONITORS[@]} -gt 0 ]; then
+            active_mon="${MONITORS[0]}"
+        fi
+    fi
     
     # Find which monitor contains the mouse
-    for MON in "${MONITORS[@]}"; do
-        if [ "$X" -ge "${MON_X1[$MON]}" ] && [ "$X" -lt "${MON_X2[$MON]}" ] &&
-           [ "$Y" -ge "${MON_Y1[$MON]}" ] && [ "$Y" -lt "${MON_Y2[$MON]}" ]; then
-            active_mon="$MON"
-            break
-        fi
-    done
+    if [ -z "$active_mon" ]; then
+        for MON in "${MONITORS[@]}"; do
+            if [ "$X" -ge "${MON_X1[$MON]}" ] && [ "$X" -lt "${MON_X2[$MON]}" ] &&
+               [ "$Y" -ge "${MON_Y1[$MON]}" ] && [ "$Y" -lt "${MON_Y2[$MON]}" ]; then
+                active_mon="$MON"
+                break
+            fi
+        done
+    fi
     
     # Check toggle state
     local toggle_state=false
-    [ -f "$TOGGLE_FILE" ] && toggle_state=true
+    if [ -f "$TOGGLE_FILE" ]; then
+        toggle_state=true
+    fi
     
     # Apply brightness to each monitor
     for MON in "${MONITORS[@]}"; do
@@ -323,7 +418,8 @@ apply_active_brightness() {
         fi
         
         # Only update if target changed
-        if [ "$(echo "${MON_TARGET_BRIGHT[$MON]:-1.0} != $target" | bc -l)" -eq 1 ]; then
+        local current_target="${MON_TARGET_BRIGHT[$MON]:-1.0}"
+        if [ "$(echo "$current_target != $target" | bc -l)" -eq 1 ]; then
             MON_TARGET_BRIGHT["$MON"]="$target"
             set_brightness_smooth "$MON" "$target"
         fi
@@ -337,14 +433,42 @@ apply_active_brightness() {
 # -----------------------------
 # INITIAL SETUP
 # -----------------------------
-echo "[$(date '+%H:%M:%S')] Starting enhanced dimming script" >&2
-echo "[$(date '+%H:%M:%S')] Idle timeout: ${IDLE_TIMEOUT}s, Idle brightness: ${IDLE_BRIGHTNESS}" >&2
-echo "[$(date '+%H:%M:%S')] Instant dim: $INSTANT_DIM, Smooth steps: $SMOOTH_STEPS" >&2
+echo "Enhanced Per-Monitor Dimming Script" >&2
+echo "==================================" >&2
+echo "Active brightness: $ACTIVE_BRIGHTNESS" >&2
+echo "Dim brightness: $DIM_BRIGHTNESS" >&2
+echo "Idle timeout: ${IDLE_TIMEOUT}s" >&2
+echo "Idle brightness: $IDLE_BRIGHTNESS" >&2
+echo "Instant dimming: $INSTANT_DIM" >&2
+echo "Smooth steps: $SMOOTH_STEPS" >&2
+echo "Idle detection: $IDLE_ENABLED" >&2
+echo "Logging: $ENABLE_LOGGING" >&2
+echo "" >&2
+
+if [ "$ENABLE_LOGGING" = true ]; then
+    echo "Log file: $LOG_FILE" >&2
+    echo "Starting logging..." >&2
+    echo "==================================" >> "$LOG_FILE"
+    echo "Script started at $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
+fi
+
+log_message "Script starting"
+log_message "Configuration: ACTIVE=$ACTIVE_BRIGHTNESS, DIM=$DIM_BRIGHTNESS, IDLE=$IDLE_BRIGHTNESS"
+log_message "Idle timeout: ${IDLE_TIMEOUT}s, Enabled: $IDLE_ENABLED"
 
 # Read initial monitor configuration
-read_monitors
-XRANDR_LIST=$(xrandr --listmonitors)
-GEOM_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
+if ! read_monitors; then
+    echo "FATAL: Failed to read monitor configuration. Exiting." >&2
+    exit 1
+fi
+
+XRANDR_LIST=$(xrandr --listmonitors 2>/dev/null)
+if [ $? -eq 0 ]; then
+    GEOM_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
+else
+    echo "Warning: Could not get initial monitor hash" >&2
+    GEOM_HASH=""
+fi
 
 # Initialize brightness tracking
 for MON in "${MONITORS[@]}"; do
@@ -353,10 +477,20 @@ for MON in "${MONITORS[@]}"; do
 done
 
 # Initial mouse position
-eval "$(xdotool getmouselocation --shell 2>/dev/null || echo "X=0;Y=0")"
-LAST_X="$X"
-LAST_Y="$Y"
+if mouse_output=$(xdotool getmouselocation --shell 2>/dev/null); then
+    eval "$mouse_output"
+    LAST_X="$X"
+    LAST_Y="$Y"
+else
+    LAST_X=0
+    LAST_Y=0
+    echo "Warning: Could not get initial mouse position" >&2
+fi
 LAST_ACTIVITY_TIME=$(date +%s)
+
+echo "Found ${#MONITORS[@]} monitor(s): ${MONITORS[*]}" >&2
+echo "Script initialized successfully. Press Ctrl+C to stop." >&2
+echo "" >&2
 
 # -----------------------------
 # MAIN LOOP
@@ -364,8 +498,9 @@ LAST_ACTIVITY_TIME=$(date +%s)
 while true; do
     # Check for stop file
     if [ -f "$STOP_FILE" ]; then
-        echo "[$(date '+%H:%M:%S')] Stop file detected, exiting" >&2
-        rm -f "$STOP_FILE"
+        log_message "Stop file detected, exiting"
+        echo "Stop file detected. Exiting..." >&2
+        rm -f "$STOP_FILE" 2>/dev/null
         exit 0
     fi
     
@@ -374,22 +509,22 @@ while true; do
     # -------- Monitor Configuration Check --------
     if (( NOW - LAST_GEOM_CHECK >= GEOM_INTERVAL )); then
         LAST_GEOM_CHECK=$NOW
-        XRANDR_LIST=$(xrandr --listmonitors)
-        NEW_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
-        
-        if [ "$NEW_HASH" != "$GEOM_HASH" ]; then
-            echo "[$(date '+%H:%M:%S')] Monitor configuration changed, updating geometry" >&2
-            GEOM_HASH="$NEW_HASH"
-            GEOM_DIRTY=1
-            read_monitors
+        local new_xrandr_list
+        if new_xrandr_list=$(xrandr --listmonitors 2>/dev/null); then
+            local new_hash
+            new_hash="$(echo "$new_xrandr_list" | sha1sum | awk '{print $1}')"
             
-            # Reinitialize brightness for any new monitors
-            for MON in "${MONITORS[@]}"; do
-                if [ -z "${MON_CURRENT_BRIGHT[$MON]}" ]; then
-                    MON_CURRENT_BRIGHT["$MON"]=1.0
-                    MON_TARGET_BRIGHT["$MON"]=1.0
+            if [ "$new_hash" != "$GEOM_HASH" ]; then
+                log_message "Monitor configuration changed, updating geometry"
+                echo "Monitor configuration changed. Updating..." >&2
+                GEOM_HASH="$new_hash"
+                GEOM_DIRTY=1
+                if ! read_monitors; then
+                    echo "Warning: Failed to update monitor geometry" >&2
                 fi
-            done
+            fi
+        else
+            log_message "Warning: Failed to check monitor configuration"
         fi
     fi
     
@@ -404,9 +539,9 @@ while true; do
     if (( NOW - LAST_IDLE_CHECK >= IDLE_CHECK_INTERVAL )); then
         LAST_IDLE_CHECK=$NOW
         
-        # Update activity detection
+        # Check mouse movement
         if check_mouse_movement; then
-            LAST_ACTIVITY_TIME=$NOW
+            log_message "Mouse movement detected at ($X, $Y)"
         fi
         
         # Check for state transitions
@@ -424,6 +559,7 @@ while true; do
             ;;
         "restoring")
             # Quick restoration to active state
+            log_message "Restoring from idle state"
             apply_active_brightness
             CURRENT_STATE="active"
             ;;
