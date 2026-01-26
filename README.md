@@ -1,11 +1,20 @@
-# Fade-Monitors
-## Mouse-aware monitor dimming (X11)
+# Fade-Monitors-enhanced-dimming
 
-**This script will auto dim whatever monitor your mouse is not 
+Shebang! I'm told this is really close to pushing bash scripiting to its limits. ##Experimental## 
+
+## Mouse-aware auto-monitor dimming that dims down all monitors when user has not touched pc for a set time.(X11)
+
+**I am currently adding differen't versions of the script I want through so if you're seeing this message you are really early and i have a more complete and worked on script towards the end**
+
+
+This does not aim to replace password protected screen saver but to act as a quality of life addition to the computer experience. 
+
+
+**This script will auto dim whatever monitor your mouse is not on** 
 	
 -Mouse-based dimming can be toggled off with a hotkey.
 
-(This version does not have time-based brightness or gamma control but has been updated to auto-detect monitors so no need to input x, y axis)
+(This version does not have time-based brightness or gamma control but has been updated so user can set a set an inactivity time between their already set screen saver and/or sleep time.)
 
 **This is the updated stable and optimized version of the mouse-based auto-dim stand-alone script
 
@@ -21,6 +30,7 @@
 
 -xdotool - reads mouse position
 
+-xprintidle
 
 ### Install requirements (copy, paste(ctrl + shift + v) commands into terminal)
 Open menu and search for terminal.
@@ -31,7 +41,7 @@ Copy/paste then hit enter
 	
 Then install
 
-	sudo apt install x11-xserver-utils xdotool
+	sudo apt-get install xprintidle bc xdotool x11-xserver-utils
 
 (xrandr will be installed if not already)
 
@@ -44,17 +54,17 @@ Optional (for hotkey support):
 ### Installation:
 
 1. Download the script
-	(click on fade-monitors-auto-2d-stable and to the right of where it says RAW click download raw file)
+	(click on fade-monitors-enhanced-dimming script and to the right of where it says RAW click download raw file)
 
 2. Move it to ~/.local/bin 
 
 3. Make the script executable (open up a terminal and copy/paste commands then hit enter)
 
-		chmod +x ~/.local/bin/fade-monitors-auto-2d-stable.sh
+		chmod +x ~/.local/bin/fade-monitors-enhanced-dimming.sh
 
 Run the script
 	
-	~/.local/bin/fade-monitors-auto-2d-stable.sh
+	~/.local/bin/fade-monitors-enhanced-dimming.sh
 
 How to stop the script
 
@@ -62,7 +72,7 @@ How to stop the script
 
 2. Open a new terminal, copy/paste then hit enter
 
-		pkill -f fade-monitors-auto-2d-stable.sh
+		pkill -f fade-monitors-enhanced-dimming.sh
 
 ### Using xbindkeys (recommended) (copy/paste commands into terminal)
 
