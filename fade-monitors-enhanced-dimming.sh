@@ -1,7 +1,7 @@
 #!/bin/bash
 # -----------------------------
-# Enhanced Per-Monitor Dimming
-# Features: Mouse-based dimming + Toggle file + Idle dimming
+# Professional Enhanced Dimming
+# Complete Feature Set: Smooth transitions + Instant override
 # -----------------------------
 # Requires: xrandr, xdotool, xprintidle, bc
 # -----------------------------
@@ -11,17 +11,23 @@
 # -----------------------------
 
 # Brightness levels
-ACTIVE_BRIGHTNESS=0.7      # Monitor with mouse
+ACTIVE_BRIGHTNESS=0.5      # Monitor with mouse
 DIM_BRIGHTNESS=0.2         # Other monitors (when toggle ON)
-IDLE_BRIGHTNESS=0.0        # All monitors when idle
+IDLE_BRIGHTNESS=0.1        # All monitors when idle
 
 # Idle settings
 IDLE_TIMEOUT=5            # Seconds of inactivity before idle dim
 IDLE_ENABLED=true          # Set to false to disable idle dimming
 
-# Dimming transitions
-INSTANT_DIM=false          # Smooth dimming to idle
-INSTANT_WAKE=true          # Instant wake from idle (recommended)
+# Smooth dimming settings
+SMOOTH_DIM_STEPS=10        # Number of steps for smooth transitions TO dim/idle
+SMOOTH_DIM_INTERVAL=0.02   # Seconds between steps (0.05 × 20 = 1 second total)
+SMOOTH_WAKE_STEPS=10       # Number of steps for smooth wake-up FROM idle
+SMOOTH_WAKE_INTERVAL=0.01  # Seconds between steps (0.02 × 10 = 0.2 seconds total)
+
+# Instant override options
+INSTANT_DIM=false          # Override smooth dimming with instant (going TO dim/idle)
+INSTANT_WAKE=true          # Override smooth waking with instant (coming FROM idle)
 
 # Toggle file (enable/disable per-monitor dimming)
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
@@ -42,7 +48,11 @@ MONITORS=()
 
 CURRENT_STATE="active"
 LAST_ACTIVE_MON=""
+LAST_ACTIVITY_TIME=0
 TOGGLE_STATE=false
+
+LAST_X=-1
+LAST_Y=-1
 
 # -----------------------------
 # SINGLE-INSTANCE LOCK
@@ -84,6 +94,120 @@ read_monitors() {
             MON_Y2["$name"]=$((y_off + height))
         fi
     done < <(xrandr --listmonitors 2>/dev/null | tail -n +2)
+    
+    if [ ${#MONITORS[@]} -eq 0 ]; then
+        echo "No monitors found" >&2
+        return 1
+    fi
+    return 0
+}
+
+# -----------------------------
+# SMOOTH TRANSITION FUNCTIONS
+# -----------------------------
+smooth_transition_to_idle() {
+    # Transition all monitors to idle brightness
+    local current_bright target_bright step_bright
+    
+    for MON in "${MONITORS[@]}"; do
+        MON_TARGET_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
+        current_bright="${MON_CURRENT_BRIGHT[$MON]:-1.0}"
+        
+        if [ "$INSTANT_DIM" = true ]; then
+            # Instant dimming
+            xrandr --output "$MON" --brightness "$IDLE_BRIGHTNESS" 2>/dev/null
+            MON_CURRENT_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
+        else
+            # Smooth dimming
+            step_bright=$(echo "scale=4; ($IDLE_BRIGHTNESS - $current_bright) / $SMOOTH_DIM_STEPS" | bc 2>/dev/null || echo "0")
+            
+            for ((i=1; i<=SMOOTH_DIM_STEPS; i++)); do
+                current_bright=$(echo "scale=4; $current_bright + $step_bright" | bc 2>/dev/null || echo "$IDLE_BRIGHTNESS")
+                
+                # Clamp value
+                if [ "$(echo "$current_bright < 0" | bc -l 2>/dev/null)" -eq 1 ]; then
+                    current_bright=0
+                elif [ "$(echo "$current_bright > 1" | bc -l 2>/dev/null)" -eq 1 ]; then
+                    current_bright=1
+                fi
+                
+                xrandr --output "$MON" --brightness "$current_bright" 2>/dev/null
+                sleep "$SMOOTH_DIM_INTERVAL"
+            done
+            
+            # Ensure exact target
+            xrandr --output "$MON" --brightness "$IDLE_BRIGHTNESS" 2>/dev/null
+            MON_CURRENT_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
+        fi
+    done
+}
+
+smooth_transition_to_active() {
+    # Transition from idle to active state
+    local target_bright current_bright step_bright
+    
+    # Calculate targets first
+    get_mouse_position
+    local active_mon=""
+    local toggle_state=false
+    [ -f "$TOGGLE_FILE" ] && toggle_state=true
+    
+    # Find active monitor
+    for MON in "${MONITORS[@]}"; do
+        if [ "$X" -ge "${MON_X1[$MON]}" ] && [ "$X" -lt "${MON_X2[$MON]}" ] &&
+           [ "$Y" -ge "${MON_Y1[$MON]}" ] && [ "$Y" -lt "${MON_Y2[$MON]}" ]; then
+            active_mon="$MON"
+            break
+        fi
+    done
+    
+    # Set targets
+    for MON in "${MONITORS[@]}"; do
+        if [ "$toggle_state" = true ] && [ "$MON" != "$active_mon" ]; then
+            MON_TARGET_BRIGHT["$MON"]="$DIM_BRIGHTNESS"
+        else
+            MON_TARGET_BRIGHT["$MON"]="$ACTIVE_BRIGHTNESS"
+        fi
+    done
+    
+    # Apply transitions
+    if [ "$INSTANT_WAKE" = true ]; then
+        # Instant wake
+        for MON in "${MONITORS[@]}"; do
+            target_bright="${MON_TARGET_BRIGHT[$MON]}"
+            xrandr --output "$MON" --brightness "$target_bright" 2>/dev/null
+            MON_CURRENT_BRIGHT["$MON"]="$target_bright"
+        done
+    else
+        # Smooth wake
+        for MON in "${MONITORS[@]}"; do
+            target_bright="${MON_TARGET_BRIGHT[$MON]}"
+            current_bright="${MON_CURRENT_BRIGHT[$MON]:-$IDLE_BRIGHTNESS}"
+            step_bright=$(echo "scale=4; ($target_bright - $current_bright) / $SMOOTH_WAKE_STEPS" | bc 2>/dev/null || echo "0")
+            
+            for ((i=1; i<=SMOOTH_WAKE_STEPS; i++)); do
+                current_bright=$(echo "scale=4; $current_bright + $step_bright" | bc 2>/dev/null || echo "$target_bright")
+                
+                # Clamp value
+                if [ "$(echo "$current_bright < 0" | bc -l 2>/dev/null)" -eq 1 ]; then
+                    current_bright=0
+                elif [ "$(echo "$current_bright > 1" | bc -l 2>/dev/null)" -eq 1 ]; then
+                    current_bright=1
+                fi
+                
+                xrandr --output "$MON" --brightness "$current_bright" 2>/dev/null
+                sleep "$SMOOTH_WAKE_INTERVAL"
+            done
+            
+            # Ensure exact target
+            xrandr --output "$MON" --brightness "$target_bright" 2>/dev/null
+            MON_CURRENT_BRIGHT["$MON"]="$target_bright"
+        done
+    fi
+    
+    # Store tracking info
+    LAST_ACTIVE_MON="$active_mon"
+    TOGGLE_STATE="$toggle_state"
 }
 
 # -----------------------------
@@ -111,11 +235,7 @@ get_idle_time() {
 # -----------------------------
 apply_idle_brightness() {
     # All monitors to idle brightness
-    for MON in "${MONITORS[@]}"; do
-        MON_TARGET_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
-        xrandr --output "$MON" --brightness "$IDLE_BRIGHTNESS" 2>/dev/null
-        MON_CURRENT_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
-    done
+    smooth_transition_to_idle
 }
 
 apply_active_brightness() {
@@ -167,16 +287,30 @@ read_monitors
 # Initialize brightness
 for MON in "${MONITORS[@]}"; do
     MON_CURRENT_BRIGHT["$MON"]=1.0
+    MON_TARGET_BRIGHT["$MON"]=1.0
 done
 
 LAST_ACTIVITY_TIME=$(date +%s)
 
 echo "Enhanced Dimming Active" >&2
-echo "Toggle file: $TOGGLE_FILE" >&2
+echo "==================================" >&2
 echo "Active brightness: $ACTIVE_BRIGHTNESS" >&2
 echo "Dim brightness: $DIM_BRIGHTNESS" >&2
 echo "Idle brightness: $IDLE_BRIGHTNESS" >&2
 echo "Idle timeout: ${IDLE_TIMEOUT}s" >&2
+echo "" >&2
+echo "Smooth dimming settings:" >&2
+echo "  Dim steps: $SMOOTH_DIM_STEPS" >&2
+echo "  Dim interval: ${SMOOTH_DIM_INTERVAL}s" >&2
+echo "  Dim total: $(echo "$SMOOTH_DIM_STEPS * $SMOOTH_DIM_INTERVAL" | bc)s" >&2
+echo "  Wake steps: $SMOOTH_WAKE_STEPS" >&2
+echo "  Wake interval: ${SMOOTH_WAKE_INTERVAL}s" >&2
+echo "  Wake total: $(echo "$SMOOTH_WAKE_STEPS * $SMOOTH_WAKE_INTERVAL" | bc)s" >&2
+echo "" >&2
+echo "Instant overrides:" >&2
+echo "  Instant dim: $INSTANT_DIM" >&2
+echo "  Instant wake: $INSTANT_WAKE" >&2
+echo "" >&2
 
 while true; do
     # Check stop file
@@ -188,13 +322,24 @@ while true; do
     if [ "$IDLE_ENABLED" = true ]; then
         idle_time=$(get_idle_time)
         
-        if [ "$idle_time" -ge "$IDLE_TIMEOUT" ]; then
-            CURRENT_STATE="idle"
-        else
-            CURRENT_STATE="active"
-        fi
-    else
-        CURRENT_STATE="active"
+        case "$CURRENT_STATE" in
+            "active")
+                if [ "$idle_time" -ge "$IDLE_TIMEOUT" ]; then
+                    echo "Entering idle state (idle for ${idle_time}s)" >&2
+                    CURRENT_STATE="idle"
+                fi
+                ;;
+            "idle")
+                if [ "$idle_time" -lt "$IDLE_TIMEOUT" ]; then
+                    echo "Waking from idle (idle for ${idle_time}s)" >&2
+                    CURRENT_STATE="waking"
+                fi
+                ;;
+            "waking")
+                smooth_transition_to_active
+                CURRENT_STATE="active"
+                ;;
+        esac
     fi
     
     # Apply brightness based on state
@@ -204,6 +349,9 @@ while true; do
             ;;
         "idle")
             apply_idle_brightness
+            ;;
+        "waking")
+            # Transition handled in state check above
             ;;
     esac
     
