@@ -1,7 +1,6 @@
 #!/bin/bash
 # -----------------------------
 # Professional Enhanced Dimming
-# Complete Feature Set with Parallel Updates
 # -----------------------------
 # Requires: xrandr, xdotool, xprintidle, bc
 # -----------------------------
@@ -12,18 +11,18 @@
 
 # Brightness levels
 ACTIVE_BRIGHTNESS=0.7      # Monitor with mouse
-DIM_BRIGHTNESS=0.2         # Other monitors (when toggle ON)
-IDLE_BRIGHTNESS=0.0        # All monitors when idle
+DIM_BRIGHTNESS=0.5         # Other monitors (when toggle ON)
+IDLE_BRIGHTNESS=0.1        # All monitors when idle
 
 # Idle settings
-IDLE_TIMEOUT=5            # Seconds of inactivity before idle dim
+IDLE_TIMEOUT=10            # Seconds of inactivity before idle dim
 IDLE_ENABLED=true          # Set to false to disable idle dimming
 
 # Smooth dimming settings
 SMOOTH_DIM_STEPS=10        # Number of steps for smooth transitions TO dim/idle
 SMOOTH_DIM_INTERVAL=0.02   # Seconds between steps (0.05 × 20 = 1 second total)
 SMOOTH_WAKE_STEPS=10       # Number of steps for smooth wake-up FROM idle
-SMOOTH_WAKE_INTERVAL=0.02  # Seconds between steps (0.02 × 10 = 0.2 seconds total)
+SMOOTH_WAKE_INTERVAL=0.01  # Seconds between steps (0.02 × 10 = 0.2 seconds total)
 
 # Instant override options
 INSTANT_DIM=false          # Override smooth dimming with instant (going TO dim/idle)
@@ -44,7 +43,7 @@ GEOM_INTERVAL=5            # Monitor check (every 5 seconds)
 # -----------------------------
 declare -A MON_X1 MON_X2 MON_Y1 MON_Y2
 declare -A MON_TARGET_BRIGHT MON_CURRENT_BRIGHT
-declare -A START_BRIGHTNESS STEP_SIZES  # For smooth transitions
+declare -A START_BRIGHTNESS STEP_SIZES
 MONITORS=()
 
 CURRENT_STATE="active"
@@ -105,19 +104,37 @@ read_monitors() {
 }
 
 # -----------------------------
-# PARALLEL XRANDR FUNCTION
+# PARALLEL XRANDR FUNCTIONS
 # -----------------------------
-parallel_xrandr() {
+parallel_xrandr_same() {
+    # Set all monitors to the same brightness
     local brightness="$1"
     local pids=()
     
-    # Launch xrandr for all monitors in parallel
     for MON in "${MONITORS[@]}"; do
         xrandr --output "$MON" --brightness "$brightness" 2>/dev/null &
         pids+=($!)
     done
     
-    # Wait for all to complete
+    wait "${pids[@]}" 2>/dev/null
+}
+
+parallel_xrandr_different() {
+    # Set each monitor to its own brightness (parallel)
+    local -A brightness_map=()
+    while [ $# -ge 2 ]; do
+        brightness_map["$1"]="$2"
+        shift 2
+    done
+    
+    local pids=()
+    for MON in "${MONITORS[@]}"; do
+        if [ -n "${brightness_map[$MON]}" ]; then
+            xrandr --output "$MON" --brightness "${brightness_map[$MON]}" 2>/dev/null &
+            pids+=($!)
+        fi
+    done
+    
     wait "${pids[@]}" 2>/dev/null
 }
 
@@ -149,7 +166,13 @@ simultaneous_smooth_transition() {
         for MON in "${MONITORS[@]}"; do
             MON_CURRENT_BRIGHT["$MON"]="${MON_TARGET_BRIGHT[$MON]}"
         done
-        parallel_xrandr "${MON_TARGET_BRIGHT[${MONITORS[0]}]}"
+        
+        # Use parallel update with different brightness per monitor
+        local brightness_args=()
+        for MON in "${MONITORS[@]}"; do
+            brightness_args+=("$MON" "${MON_TARGET_BRIGHT[$MON]}")
+        done
+        parallel_xrandr_different "${brightness_args[@]}"
         return 0
     fi
     
@@ -164,8 +187,8 @@ simultaneous_smooth_transition() {
     
     # Perform smooth transition with parallel updates
     for ((step=1; step<=steps; step++)); do
-        # Calculate current brightness for this step
-        local current_brightness=""
+        # Calculate current brightness for this step for each monitor
+        local brightness_args=()
         
         for MON in "${MONITORS[@]}"; do
             local current
@@ -180,17 +203,11 @@ simultaneous_smooth_transition() {
             
             # Store current brightness
             MON_CURRENT_BRIGHT["$MON"]="$current"
-            
-            # For parallel update, we use the first monitor's brightness
-            # (All monitors get the same during idle transitions,
-            # during wake transitions they may differ but we simplify)
-            if [ -z "$current_brightness" ]; then
-                current_brightness="$current"
-            fi
+            brightness_args+=("$MON" "$current")
         done
         
-        # Update all monitors in parallel with current brightness
-        parallel_xrandr "$current_brightness"
+        # Update all monitors in parallel with their individual brightness
+        parallel_xrandr_different "${brightness_args[@]}"
         
         # Sleep for interval
         sleep "$interval"
@@ -201,8 +218,12 @@ simultaneous_smooth_transition() {
         MON_CURRENT_BRIGHT["$MON"]="${MON_TARGET_BRIGHT[$MON]}"
     done
     
-    # Final parallel update
-    parallel_xrandr "${MON_TARGET_BRIGHT[${MONITORS[0]}]}"
+    # Final parallel update with exact targets
+    local final_brightness_args=()
+    for MON in "${MONITORS[@]}"; do
+        final_brightness_args+=("$MON" "${MON_TARGET_BRIGHT[$MON]}")
+    done
+    parallel_xrandr_different "${final_brightness_args[@]}"
     
     TRANSITION_IN_PROGRESS=false
 }
@@ -228,7 +249,7 @@ get_idle_time() {
 }
 
 # -----------------------------
-# BRIGHTNESS FUNCTIONS
+# BRIGHTNESS FUNCTIONS - BUG FIXED
 # -----------------------------
 apply_idle_brightness() {
     # Set target brightness for idle state (all monitors same)
@@ -254,6 +275,11 @@ apply_active_brightness() {
         fi
     done
     
+    # If no active monitor found, default to first monitor
+    if [ -z "$active_mon" ] && [ ${#MONITORS[@]} -gt 0 ]; then
+        active_mon="${MONITORS[0]}"
+    fi
+    
     # Check toggle state
     toggle_state=false
     if [ -f "$TOGGLE_FILE" ]; then
@@ -263,9 +289,17 @@ apply_active_brightness() {
     # Set targets for each monitor
     needs_update=false
     for MON in "${MONITORS[@]}"; do
-        if [ "$toggle_state" = true ] && [ "$MON" != "$active_mon" ]; then
-            target="$DIM_BRIGHTNESS"
+        # FIXED BUG: Logic was reversed
+        # If toggle is OFF, all monitors should be ACTIVE_BRIGHTNESS
+        # If toggle is ON, only active monitor should be ACTIVE_BRIGHTNESS, others DIM_BRIGHTNESS
+        if [ "$toggle_state" = true ]; then
+            if [ "$MON" = "$active_mon" ]; then
+                target="$ACTIVE_BRIGHTNESS"
+            else
+                target="$DIM_BRIGHTNESS"
+            fi
         else
+            # Toggle is OFF - all monitors get ACTIVE_BRIGHTNESS
             target="$ACTIVE_BRIGHTNESS"
         fi
         
@@ -284,10 +318,15 @@ apply_active_brightness() {
             mode="wake"
         fi
         simultaneous_smooth_transition "$mode"
-    elif [ "$needs_update" = false ]; then
+    elif [ "$needs_update" = false ] && [ "$TRANSITION_IN_PROGRESS" = false ]; then
         # Just ensure current brightness matches target
         for MON in "${MONITORS[@]}"; do
-            MON_CURRENT_BRIGHT["$MON"]="${MON_TARGET_BRIGHT[$MON]}"
+            current="${MON_CURRENT_BRIGHT[$MON]:-1.0}"
+            target="${MON_TARGET_BRIGHT[$MON]:-1.0}"
+            if [ "$(echo "$current != $target" | bc -l 2>/dev/null)" -eq 1 ]; then
+                xrandr --output "$MON" --brightness "$target" 2>/dev/null
+                MON_CURRENT_BRIGHT["$MON"]="$target"
+            fi
         done
     fi
     
@@ -309,7 +348,7 @@ done
 
 LAST_ACTIVITY_TIME=$(date +%s)
 
-echo "Enhanced Dimming Active" >&2
+echo "Enhanced Dimming Active - BUG FIXED VERSION" >&2
 echo "==================================" >&2
 echo "Active brightness: $ACTIVE_BRIGHTNESS" >&2
 echo "Dim brightness: $DIM_BRIGHTNESS" >&2
@@ -324,7 +363,11 @@ echo "Instant overrides:" >&2
 echo "  Instant dim: $INSTANT_DIM" >&2
 echo "  Instant wake: $INSTANT_WAKE" >&2
 echo "" >&2
-echo "Parallel updates: ENABLED" >&2
+echo "Toggle file: $TOGGLE_FILE" >&2
+echo "  ON: Per-monitor dimming enabled" >&2
+echo "  OFF: All monitors at active brightness" >&2
+echo "" >&2
+echo "Parallel updates: ENABLED with per-monitor brightness" >&2
 echo "" >&2
 
 while true; do
