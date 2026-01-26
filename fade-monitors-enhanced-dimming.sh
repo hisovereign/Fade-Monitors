@@ -20,12 +20,12 @@ DIM_BRIGHTNESS=0.2         # Other monitors (when toggle ON)
 IDLE_BRIGHTNESS=0.1        # All monitors when idle
 
 # Idle settings
-IDLE_TIMEOUT=10            # Seconds of inactivity before idle dim (1 minute)
+IDLE_TIMEOUT=5            # Seconds of inactivity before idle dim (1 minute)
 IDLE_ENABLED=true          # Set to false to disable idle dimming
 
 # Smooth dimming settings
 INSTANT_DIM=false          # true = instant changes, false = smooth transitions
-SMOOTH_STEPS=20            # Number of steps for smooth transitions
+SMOOTH_STEPS=10            # Number of steps for smooth transitions
 SMOOTH_INTERVAL=0.05       # Seconds between steps (0.05 × 20 = 1 second total)
 
 # Toggle file
@@ -109,7 +109,7 @@ check_dependencies() {
         echo "Install with: sudo apt-get install bc" >&2
     fi
     
-    # Check xprintidle (for idle detection) - CORRECT PACKAGE NAME
+    # Check xprintidle (for idle detection)
     if [ "$IDLE_ENABLED" = true ]; then
         if ! command -v xprintidle &> /dev/null; then
             echo "WARNING: xprintidle not found. Install with: sudo apt-get install xprintidle" >&2
@@ -431,6 +431,30 @@ apply_active_brightness() {
 }
 
 # -----------------------------
+# GEOMETRY CHECK FUNCTION (NEW)
+# -----------------------------
+check_geometry() {
+    # This function checks if monitor configuration has changed
+    local new_xrandr_list
+    if new_xrandr_list=$(xrandr --listmonitors 2>/dev/null); then
+        local new_hash
+        new_hash="$(echo "$new_xrandr_list" | sha1sum | awk '{print $1}')"
+        
+        if [ "$new_hash" != "$GEOM_HASH" ]; then
+            log_message "Monitor configuration changed, updating geometry"
+            echo "Monitor configuration changed. Updating..." >&2
+            GEOM_HASH="$new_hash"
+            GEOM_DIRTY=1
+            if ! read_monitors; then
+                echo "Warning: Failed to update monitor geometry" >&2
+            fi
+        fi
+    else
+        log_message "Warning: Failed to check monitor configuration"
+    fi
+}
+
+# -----------------------------
 # INITIAL SETUP
 # -----------------------------
 echo "Enhanced Per-Monitor Dimming Script" >&2
@@ -509,23 +533,7 @@ while true; do
     # -------- Monitor Configuration Check --------
     if (( NOW - LAST_GEOM_CHECK >= GEOM_INTERVAL )); then
         LAST_GEOM_CHECK=$NOW
-        local new_xrandr_list
-        if new_xrandr_list=$(xrandr --listmonitors 2>/dev/null); then
-            local new_hash
-            new_hash="$(echo "$new_xrandr_list" | sha1sum | awk '{print $1}')"
-            
-            if [ "$new_hash" != "$GEOM_HASH" ]; then
-                log_message "Monitor configuration changed, updating geometry"
-                echo "Monitor configuration changed. Updating..." >&2
-                GEOM_HASH="$new_hash"
-                GEOM_DIRTY=1
-                if ! read_monitors; then
-                    echo "Warning: Failed to update monitor geometry" >&2
-                fi
-            fi
-        else
-            log_message "Warning: Failed to check monitor configuration"
-        fi
+        check_geometry
     fi
     
     # Skip brightness updates if geometry just changed
