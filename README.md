@@ -1,8 +1,8 @@
 # Fade-Monitors-enhanced-dimming
 
-Shebang! I'm told this is really close to pushing bash scripiting to its limits. ##Experimental## 
+Shebang! I'm told this is really close to pushing bash scripiting to its limits. **Experimental** 
 
-## Mouse-aware auto-monitor dimming that dims down all monitors when user has not touched pc for a set time.(X11)
+## Mouse-aware auto-monitor dimming with idle dimming (dims down all monitors when user has not touched pc for a set time.)(X11)
 
 **I am currently adding differen't versions of the script I want through so if you're seeing this message you are really early and i have a more complete and worked on script towards the end**
 
