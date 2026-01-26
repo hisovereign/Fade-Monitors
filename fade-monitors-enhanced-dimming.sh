@@ -2,12 +2,12 @@
 # -----------------------------
 # Enhanced Per-Monitor Dimming
 # Features:
-# - Per-monitor mouse-based dimming
-# - Idle timeout dimming (all monitors)
-# - Configurable smooth transitions
+# - Simultaneous smooth transitions for all monitors
+# - Separate controls for idle dimming vs wake-up
+# - Configurable smooth/instant dimming
 # - Keyboard + mouse activity detection
 # -----------------------------
-# Requires: xrandr, xdotool, xprintidle
+# Requires: xrandr, xdotool, xprintidle, bc
 # -----------------------------
 
 # -----------------------------
@@ -23,10 +23,15 @@ IDLE_BRIGHTNESS=0.1        # All monitors when idle
 IDLE_TIMEOUT=5            # Seconds of inactivity before idle dim (1 minute)
 IDLE_ENABLED=true          # Set to false to disable idle dimming
 
-# Smooth dimming settings
+# Dimming transitions (going TO idle/dim)
 INSTANT_DIM=false          # true = instant changes, false = smooth transitions
-SMOOTH_STEPS=10            # Number of steps for smooth transitions
-SMOOTH_INTERVAL=0.05       # Seconds between steps (0.05 × 20 = 1 second total)
+SMOOTH_DIM_STEPS=10        # Number of steps for smooth transitions TO dim/idle
+SMOOTH_DIM_INTERVAL=0.02   # Seconds between steps (0.05 × 20 = 1 second total)
+
+# Wake-up transitions (coming FROM idle/dim)
+INSTANT_WAKE=true         # true = instant wake, false = smooth wake
+SMOOTH_WAKE_STEPS=10       # Number of steps for smooth wake-up (usually faster)
+SMOOTH_WAKE_INTERVAL=0.01  # Seconds between steps (0.02 × 10 = 0.2 seconds total)
 
 # Toggle file
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
@@ -82,6 +87,10 @@ TOGGLE_STATE=false
 LAST_X=-1
 LAST_Y=-1
 
+# Transition tracking
+TRANSITION_IN_PROGRESS=false
+TRANSITION_START_TIME=0
+
 # -----------------------------
 # INITIAL DEPENDENCY CHECK
 # -----------------------------
@@ -122,11 +131,6 @@ check_dependencies() {
         echo "FATAL: Missing required dependencies. Please install them and try again." >&2
         exit 1
     fi
-    
-    # Optional dependencies warnings
-    if [ "$IDLE_ENABLED" = false ] && [ -n "$(command -v xprintidle)" ]; then
-        echo "INFO: xprintidle is installed but idle dimming is disabled in config." >&2
-    fi
 }
 
 check_dependencies
@@ -138,9 +142,7 @@ restore_defaults() {
     log_message "Restoring defaults"
     # Restore all monitors to normal brightness
     for MON in "${MONITORS[@]}"; do
-        xrandr --output "$MON" --brightness 1.0 --gamma 1.0:1.0:1.0 2>/dev/null && \
-            log_message "Restored monitor $MON to 1.0 brightness" || \
-            log_message "Warning: Failed to restore monitor $MON"
+        xrandr --output "$MON" --brightness 1.0 --gamma 1.0:1.0:1.0 2>/dev/null
     done
 }
 
@@ -192,10 +194,6 @@ read_monitors() {
             MON_Y2["$NAME"]=$((Y_OFF + HEIGHT))
             MON_CURRENT_BRIGHT["$NAME"]=1.0  # Start at full brightness
             MON_TARGET_BRIGHT["$NAME"]=1.0   # Target is full brightness initially
-            
-            log_message "Found monitor: $NAME at ${X_OFF}x${Y_OFF}, size ${WIDTH}x${HEIGHT}"
-        else
-            log_message "Warning: Could not parse monitor line: $line"
         fi
     done
     
@@ -204,78 +202,107 @@ read_monitors() {
         return 1
     fi
     
-    log_message "Total monitors found: ${#MONITORS[@]}"
     return 0
 }
 
 # -----------------------------
-# BRIGHTNESS CONTROL FUNCTIONS
+# SIMULTANEOUS BRIGHTNESS CONTROL FUNCTIONS
 # -----------------------------
-set_brightness_instant() {
-    local monitor="$1"
-    local brightness="$2"
-    
-    # Use bc for accurate floating point comparison
-    local current="${MON_CURRENT_BRIGHT[$monitor]:-1.0}"
-    local diff
-    diff=$(echo "scale=3; $current - $brightness" | bc | awk '{if ($1<0) print -$1; else print $1}')
-    
-    # Only update if the brightness actually changed by more than 0.001
-    if [ "$(echo "$diff > 0.001" | bc -l)" -eq 1 ]; then
-        if xrandr --output "$monitor" --brightness "$brightness" 2>/dev/null; then
-            MON_CURRENT_BRIGHT["$monitor"]="$brightness"
-            log_message "Set $monitor to brightness $brightness (instant)"
-        else
-            log_message "Error: Failed to set $monitor to brightness $brightness"
+set_all_brightness_instant() {
+    # Set all monitors to their target brightness instantly
+    for MON in "${MONITORS[@]}"; do
+        local target="${MON_TARGET_BRIGHT[$MON]:-1.0}"
+        local current="${MON_CURRENT_BRIGHT[$MON]:-1.0}"
+        
+        # Only update if changed
+        if [ "$(echo "$current != $target" | bc -l)" -eq 1 ]; then
+            xrandr --output "$MON" --brightness "$target" 2>/dev/null
+            MON_CURRENT_BRIGHT["$MON"]="$target"
         fi
-    fi
+    done
 }
 
-set_brightness_smooth() {
-    local monitor="$1"
-    local target="$2"
-    local current="${MON_CURRENT_BRIGHT[$monitor]:-1.0}"
+transition_all_monitors() {
+    # Simultaneous smooth transition for ALL monitors
+    # Arguments: $1 = "dim" or "wake" (determines which settings to use)
+    local mode="$1"
+    local steps interval instant
     
-    # If instant dimming is enabled, or if the change is very small, do it instantly
-    local diff
-    diff=$(echo "scale=3; $current - $target" | bc | awk '{if ($1<0) print -$1; else print $1}')
-    
-    if [ "$INSTANT_DIM" = true ] || [ "$(echo "$diff < 0.01" | bc -l)" -eq 1 ]; then
-        set_brightness_instant "$monitor" "$target"
-        return
+    if [ "$mode" = "dim" ]; then
+        steps="$SMOOTH_DIM_STEPS"
+        interval="$SMOOTH_DIM_INTERVAL"
+        instant="$INSTANT_DIM"
+    elif [ "$mode" = "wake" ]; then
+        steps="$SMOOTH_WAKE_STEPS"
+        interval="$SMOOTH_WAKE_INTERVAL"
+        instant="$INSTANT_WAKE"
+    else
+        echo "ERROR: Invalid transition mode: $mode" >&2
+        return 1
     fi
     
-    log_message "Smooth transition for $monitor: $current -> $target ($SMOOTH_STEPS steps)"
+    # Check if we should do instant transition
+    if [ "$instant" = true ]; then
+        set_all_brightness_instant
+        log_message "Instant $mode transition"
+        return 0
+    fi
     
-    # Calculate step size
-    local step
-    step=$(echo "scale=4; ($target - $current) / $SMOOTH_STEPS" | bc)
+    log_message "Starting simultaneous smooth $mode transition ($steps steps)"
+    TRANSITION_IN_PROGRESS=true
+    TRANSITION_START_TIME=$(date +%s)
     
-    # Perform smooth transition
-    for ((i=1; i<=SMOOTH_STEPS; i++)); do
-        # Check for stop file during long transitions
-        if [ -f "$STOP_FILE" ]; then
-            log_message "Stop file detected during smooth transition"
-            break
-        fi
+    # Calculate starting brightness for each monitor
+    declare -A start_brightness
+    declare -A target_brightness
+    declare -A step_sizes
+    
+    for MON in "${MONITORS[@]}"; do
+        start_brightness["$MON"]="${MON_CURRENT_BRIGHT[$MON]:-1.0}"
+        target_brightness["$MON"]="${MON_TARGET_BRIGHT[$MON]:-1.0}"
         
-        current=$(echo "scale=4; $current + $step" | bc)
-        
-        # Clamp value between 0 and 1
-        if [ "$(echo "$current < 0" | bc -l)" -eq 1 ]; then
-            current=0
-        elif [ "$(echo "$current > 1" | bc -l)" -eq 1 ]; then
-            current=1
-        fi
-        
-        xrandr --output "$monitor" --brightness "$current" 2>/dev/null
-        sleep "$SMOOTH_INTERVAL"
+        # Calculate step size for this monitor
+        step_sizes["$MON"]=$(echo "scale=4; (${target_brightness[$MON]} - ${start_brightness[$MON]}) / $steps" | bc)
     done
     
-    # Ensure final target is set
-    xrandr --output "$monitor" --brightness "$target" 2>/dev/null
-    MON_CURRENT_BRIGHT["$monitor"]="$target"
-    log_message "Completed smooth transition for $monitor to $target"
+    # Perform smooth transition simultaneously
+    for ((step=1; step<=steps; step++)); do
+        # Check for stop file
+        if [ -f "$STOP_FILE" ]; then
+            log_message "Stop file detected during transition"
+            TRANSITION_IN_PROGRESS=false
+            return 1
+        fi
+        
+        # Calculate current brightness for each monitor and apply
+        for MON in "${MONITORS[@]}"; do
+            local current_bright
+            current_bright=$(echo "scale=4; ${start_brightness[$MON]} + (${step_sizes[$MON]} * $step)" | bc)
+            
+            # Clamp between 0 and 1
+            if [ "$(echo "$current_bright < 0" | bc -l)" -eq 1 ]; then
+                current_bright=0
+            elif [ "$(echo "$current_bright > 1" | bc -l)" -eq 1 ]; then
+                current_bright=1
+            fi
+            
+            xrandr --output "$MON" --brightness "$current_bright" 2>/dev/null
+            MON_CURRENT_BRIGHT["$MON"]="$current_bright"
+        done
+        
+        sleep "$interval"
+    done
+    
+    # Ensure final targets are set exactly
+    for MON in "${MONITORS[@]}"; do
+        local target="${target_brightness[$MON]}"
+        xrandr --output "$MON" --brightness "$target" 2>/dev/null
+        MON_CURRENT_BRIGHT["$MON"]="$target"
+    done
+    
+    TRANSITION_IN_PROGRESS=false
+    local duration=$(( $(date +%s) - TRANSITION_START_TIME ))
+    log_message "Completed simultaneous $mode transition in ${duration}s"
 }
 
 # -----------------------------
@@ -292,7 +319,6 @@ get_idle_time() {
     if idle_ms=$(xprintidle 2>/dev/null); then
         echo "$((idle_ms / 1000))"
     else
-        log_message "Warning: xprintidle command failed"
         echo "0"
     fi
 }
@@ -309,15 +335,8 @@ check_mouse_movement() {
             LAST_ACTIVITY_TIME=$(date +%s)
             return 0  # Mouse moved
         fi
-    else
-        log_message "Warning: Failed to get mouse location"
     fi
     return 1  # Mouse stationary or error
-}
-
-update_activity() {
-    # Update last activity time
-    LAST_ACTIVITY_TIME=$(date +%s)
 }
 
 check_state_transition() {
@@ -325,7 +344,6 @@ check_state_transition() {
     if [ "$IDLE_ENABLED" = false ]; then
         # If idle is disabled, always stay in active state
         if [ "$CURRENT_STATE" != "active" ]; then
-            log_message "Idle disabled, returning to active state"
             CURRENT_STATE="active"
             return 2
         fi
@@ -353,7 +371,6 @@ check_state_transition() {
         "restoring")
             # Once we start restoring, we should quickly transition to active
             CURRENT_STATE="active"
-            log_message "Restoration complete, returning to active state"
             return 0  # State changed to active
             ;;
     esac
@@ -364,15 +381,13 @@ check_state_transition() {
 # BRIGHTNESS LOGIC FUNCTIONS
 # -----------------------------
 apply_idle_brightness() {
-    # Set all monitors to idle brightness
-    log_message "Applying idle brightness ($IDLE_BRIGHTNESS) to all monitors"
+    # Set target brightness for idle state (all monitors same)
     for MON in "${MONITORS[@]}"; do
-        local current="${MON_CURRENT_BRIGHT[$MON]:-1.0}"
-        if [ "$(echo "$current != $IDLE_BRIGHTNESS" | bc -l)" -eq 1 ]; then
-            MON_TARGET_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
-            set_brightness_smooth "$MON" "$IDLE_BRIGHTNESS"
-        fi
+        MON_TARGET_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
     done
+    
+    # Apply the transition
+    transition_all_monitors "dim"
 }
 
 apply_active_brightness() {
@@ -409,7 +424,8 @@ apply_active_brightness() {
         toggle_state=true
     fi
     
-    # Apply brightness to each monitor
+    # Set target brightness for each monitor
+    local needs_transition=false
     for MON in "${MONITORS[@]}"; do
         local target="$ACTIVE_BRIGHTNESS"
         
@@ -417,13 +433,27 @@ apply_active_brightness() {
             target="$DIM_BRIGHTNESS"
         fi
         
-        # Only update if target changed
+        # Check if target changed
         local current_target="${MON_TARGET_BRIGHT[$MON]:-1.0}"
         if [ "$(echo "$current_target != $target" | bc -l)" -eq 1 ]; then
             MON_TARGET_BRIGHT["$MON"]="$target"
-            set_brightness_smooth "$MON" "$target"
+            needs_transition=true
         fi
     done
+    
+    # Apply transition if needed (but not if we're already in a transition)
+    if [ "$needs_transition" = true ] && [ "$TRANSITION_IN_PROGRESS" = false ]; then
+        if [ "$CURRENT_STATE" = "restoring" ]; then
+            # Use wake settings for restoring from idle
+            transition_all_monitors "wake"
+        else
+            # Use dim settings for normal active changes
+            transition_all_monitors "dim"
+        fi
+    elif [ "$needs_transition" = false ] && [ "$TRANSITION_IN_PROGRESS" = false ]; then
+        # Just ensure current brightness matches target
+        set_all_brightness_instant
+    fi
     
     # Store last active monitor for state tracking
     LAST_ACTIVE_MON="$active_mon"
@@ -431,7 +461,7 @@ apply_active_brightness() {
 }
 
 # -----------------------------
-# GEOMETRY CHECK FUNCTION (NEW)
+# GEOMETRY CHECK FUNCTION
 # -----------------------------
 check_geometry() {
     # This function checks if monitor configuration has changed
@@ -449,8 +479,6 @@ check_geometry() {
                 echo "Warning: Failed to update monitor geometry" >&2
             fi
         fi
-    else
-        log_message "Warning: Failed to check monitor configuration"
     fi
 }
 
@@ -461,17 +489,25 @@ echo "Enhanced Per-Monitor Dimming Script" >&2
 echo "==================================" >&2
 echo "Active brightness: $ACTIVE_BRIGHTNESS" >&2
 echo "Dim brightness: $DIM_BRIGHTNESS" >&2
-echo "Idle timeout: ${IDLE_TIMEOUT}s" >&2
 echo "Idle brightness: $IDLE_BRIGHTNESS" >&2
-echo "Instant dimming: $INSTANT_DIM" >&2
-echo "Smooth steps: $SMOOTH_STEPS" >&2
+echo "Idle timeout: ${IDLE_TIMEOUT}s" >&2
 echo "Idle detection: $IDLE_ENABLED" >&2
-echo "Logging: $ENABLE_LOGGING" >&2
+echo "" >&2
+echo "Dimming transitions:" >&2
+echo "  Instant dim: $INSTANT_DIM" >&2
+echo "  Smooth steps: $SMOOTH_DIM_STEPS" >&2
+echo "  Step interval: ${SMOOTH_DIM_INTERVAL}s" >&2
+echo "  Total time: $(echo "$SMOOTH_DIM_STEPS * $SMOOTH_DIM_INTERVAL" | bc)s" >&2
+echo "" >&2
+echo "Wake-up transitions:" >&2
+echo "  Instant wake: $INSTANT_WAKE" >&2
+echo "  Smooth steps: $SMOOTH_WAKE_STEPS" >&2
+echo "  Step interval: ${SMOOTH_WAKE_INTERVAL}s" >&2
+echo "  Total time: $(echo "$SMOOTH_WAKE_STEPS * $SMOOTH_WAKE_INTERVAL" | bc)s" >&2
 echo "" >&2
 
 if [ "$ENABLE_LOGGING" = true ]; then
     echo "Log file: $LOG_FILE" >&2
-    echo "Starting logging..." >&2
     echo "==================================" >> "$LOG_FILE"
     echo "Script started at $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
 fi
@@ -490,7 +526,6 @@ XRANDR_LIST=$(xrandr --listmonitors 2>/dev/null)
 if [ $? -eq 0 ]; then
     GEOM_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
 else
-    echo "Warning: Could not get initial monitor hash" >&2
     GEOM_HASH=""
 fi
 
@@ -508,7 +543,6 @@ if mouse_output=$(xdotool getmouselocation --shell 2>/dev/null); then
 else
     LAST_X=0
     LAST_Y=0
-    echo "Warning: Could not get initial mouse position" >&2
 fi
 LAST_ACTIVITY_TIME=$(date +%s)
 
@@ -548,9 +582,7 @@ while true; do
         LAST_IDLE_CHECK=$NOW
         
         # Check mouse movement
-        if check_mouse_movement; then
-            log_message "Mouse movement detected at ($X, $Y)"
-        fi
+        check_mouse_movement
         
         # Check for state transitions
         check_state_transition
@@ -567,9 +599,7 @@ while true; do
             ;;
         "restoring")
             # Quick restoration to active state
-            log_message "Restoring from idle state"
             apply_active_brightness
-            CURRENT_STATE="active"
             ;;
     esac
     
