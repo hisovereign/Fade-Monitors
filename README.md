@@ -4,7 +4,6 @@ Shebang! I'm told this is really close to pushing bash scripiting to its limits.
 
 ## Mouse-aware auto-monitor dimming with idle dimming (dims down all monitors when user has not touched pc for a set time.)(X11)
 
-**I am currently adding differen't versions of the script I want through so if you're seeing this message you are really early and i have a more complete and worked on script towards the end**
 
 
 This does not aim to replace password protected screen saver but to act as a quality of life addition to the computer experience. 
@@ -68,9 +67,11 @@ Run the script
 
 How to stop the script
 
-1. Close the terminal you ran the script in or
+1. ctrl + c in terminal you started script or
 
-2. Open a new terminal, copy/paste then hit enter
+2. close the terminal you started script in or
+
+3. Open a new terminal, copy/paste then hit enter
 
 		pkill -f fade-monitors-enhanced-dimming.sh
 
