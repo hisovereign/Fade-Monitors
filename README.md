@@ -9,15 +9,13 @@ Shebang! I'm told this is really close to pushing bash scripiting to its limits.
 This does not aim to replace password protected screen saver but to act as a quality of life addition to the computer experience. 
 
 
-**This script will auto dim whatever monitor your mouse is not on** 
+**This script will auto dim whatever monitor your mouse is not on as well as idle dim to user's preferred settings** 
 	
 -Mouse-based dimming can be toggled off with a hotkey.
 
-(This version does not have time-based brightness or gamma control but has been updated so user can set a set an inactivity time between their already set screen saver and/or sleep time.)
+(This version does not have time-based brightness or gamma control but has been updated so user can set an inactivity time between their already set screen saver and/or sleep time.)
 
 **This is the updated stable and optimized version of the mouse-based auto-dim stand-alone script
-
--Improved architechture that reduces CPU consumption and prevents cumulative lag during repeated display layout changes
 
 
 
