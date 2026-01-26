@@ -15,7 +15,7 @@ DIM_BRIGHTNESS=0.5         # Other monitors (when toggle ON)
 IDLE_BRIGHTNESS=0.1        # All monitors when idle
 
 # Idle settings
-IDLE_TIMEOUT=10            # Seconds of inactivity before idle dim
+IDLE_TIMEOUT=60            # Seconds of inactivity before idle dim
 IDLE_ENABLED=true          # Set to false to disable idle dimming
 
 # Smooth dimming settings
