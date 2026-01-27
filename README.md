@@ -29,6 +29,8 @@ This does not aim to replace password protected screen saver but to act as a qua
 
 -xprintidle
 
+-hotkey toggle required for this version
+
 ### Install requirements (copy, paste(ctrl + shift + v) commands into terminal)
 Open menu and search for terminal.
 
@@ -43,7 +45,7 @@ Then install
 (xrandr will be installed if not already)
 
 
-Optional (for hotkey support):
+Preferred hotkey method (we are using bindkeys):
 
 	sudo apt install xbindkeys
 
@@ -75,7 +77,7 @@ How to stop the script
 
 ### Using xbindkeys (recommended) (copy/paste commands into terminal)
 
-1. Install bindkeys
+1. Install bindkeys (if you haven't already)
 
 		sudo apt install xbindkeys
 
