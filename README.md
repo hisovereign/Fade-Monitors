@@ -11,8 +11,12 @@ https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/READM
 
 (These versions have been stabilized, auto-detect monitor positions and have been optomized to the best of current my knowledge)
 
+### Experimental Branch (Fade Monitors enhanced dimming. The stand-alone branch w/ idle dim added. Idle dim settings at the cost of increased cpu usage.
 
-⚠️ Note: This version does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes and will increase cpu usage.
+https://github.com/hisovereign/Fade-Monitors/blob/Fade-Monitors-enhanced-dimming/README.md
+
+
+⚠️ Note: This version, fade-monitors-night-gamma, does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes and will increase cpu usage.
 
 ⚠️ Note: Changing brightness values to zero will blackout monitors and you will need to ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-night-gamma.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will temporarily kill script and you can then change values and restart computer.
 
