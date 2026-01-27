@@ -115,7 +115,7 @@ Do the same for xbindkeys (click + then custom command and search for .xbindkeys
 
 ### Important Information
 
--Warning Blackout Monitor Warning **If you change the minimum values to zero it will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-auto-2d-stable.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7).** 
+-Warning Blackout Monitor Warning **If you change the minimum values to zero it will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-enhanced-dimming.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7).** 
 
 
 -The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer even less cpu usage at cost of monitor dim lag. 0.2 will work. 0.3 is still functional but fast mouse movements may not trigger monitor dim.
