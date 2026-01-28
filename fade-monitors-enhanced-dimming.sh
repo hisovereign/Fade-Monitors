@@ -15,7 +15,7 @@ DIM_BRIGHTNESS=0.2
 IDLE_BRIGHTNESS=0.1
 
 # Idle settings
-IDLE_TIMEOUT=90           # Seconds of inactivity before idle dim (e.g., 60s = 1 minute)
+IDLE_TIMEOUT=60           # Seconds of inactivity before idle dim (e.g., 60s = 1 minute)
 ENABLE_IDLE=true          # Set to false to disable idle dimming entirely
 
 # Smooth transition settings - MOUSE DIM
@@ -26,7 +26,7 @@ INSTANT_MOUSE_DIM=true        # Override smooth dimming with instant for mouse
 # Smooth transition settings - IDLE DIM  
 SMOOTH_DIM_IDLE_STEPS=10       # Steps for idle dimming transitions (slower)
 SMOOTH_DIM_IDLE_INTERVAL=0.02  # Seconds between steps for idle dimming
-INSTANT_IDLE_DIM=false         # Override smooth dimming with instant for idle
+INSTANT_IDLE_DIM=false          # Override smooth dimming with instant for idle
 
 # Toggle files
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
@@ -363,13 +363,19 @@ fi
 read_monitors
 GEOM_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
 
+# Calculate effective timeout for display (0 becomes 1)
+EFFECTIVE_TIMEOUT="$IDLE_TIMEOUT"
+if [ "$IDLE_TIMEOUT" -eq 0 ]; then
+    EFFECTIVE_TIMEOUT=1
+fi
+
 # Print configuration
 echo "Enhanced Mouse-Based Dimming with Idle Support" >&2
 echo "=============================================" >&2
 echo "Active brightness: $ACTIVE_BRIGHTNESS" >&2
 echo "Dim brightness: $DIM_BRIGHTNESS" >&2
 echo "Idle brightness: $IDLE_BRIGHTNESS" >&2
-echo "Idle timeout: ${IDLE_TIMEOUT}s" >&2
+echo "Idle timeout: ${IDLE_TIMEOUT}s (effective: ${EFFECTIVE_TIMEOUT}s)" >&2
 echo "Idle enabled: $ENABLE_IDLE" >&2
 echo "Idle toggle file: $IDLE_TOGGLE_FILE" >&2
 echo "Idle toggle state: $([ -f "$IDLE_TOGGLE_FILE" ] && echo "OFF (file exists = disabled)" || echo "ON (no file = enabled)")" >&2
@@ -419,17 +425,23 @@ while true; do
         if [ "$ENABLE_IDLE" = true ]; then
             idle_time=$(get_idle_time)
             
+            # Calculate effective timeout (0 becomes 1)
+            effective_timeout="$IDLE_TIMEOUT"
+            if [ "$effective_timeout" -eq 0 ]; then
+                effective_timeout=1
+            fi
+            
             # State transitions
             case "$CURRENT_STATE" in
                 "active")
-                    if [ "$idle_time" -ge "$IDLE_TIMEOUT" ]; then
+                    if [ "$idle_time" -ge "$effective_timeout" ]; then
                         echo "Entering idle state (idle for ${idle_time}s)" >&2
                         CURRENT_STATE="idle"
-                        LAST_ACTIVITY_TIME=$((NOW - IDLE_TIMEOUT))
+                        LAST_ACTIVITY_TIME=$((NOW - idle_time))
                     fi
                     ;;
                 "idle")
-                    if [ "$idle_time" -lt "$IDLE_TIMEOUT" ]; then
+                    if [ "$idle_time" -lt "$effective_timeout" ]; then
                         echo "Waking from idle (idle for ${idle_time}s)" >&2
                         CURRENT_STATE="active"
                         LAST_ACTIVITY_TIME=$NOW
