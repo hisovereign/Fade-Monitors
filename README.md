@@ -102,6 +102,8 @@ Run the script
 
 ## Run script at start up
 
+**WARNING** Running script at start up and changing brightness values to zero will blackout monitors and you need to do recovery option in important information at bottom.
+
 1. Open Start up applications> click + then custom command>browse and select the script you downloaded
 
 2. Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
@@ -135,7 +137,11 @@ Gamma control (optional)**
 
 ## Important Information
 
-![WARNING] Minimum brightness logic has been implemented. However, you can just delete it. Previous version of this script can also still set brightness values to zero. Doing so will blackout monitors and you will need to ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will kill the script and you will need to change values before restart.
+![WARNING] Minimum brightness logic has been implemented. However, you can just delete it. Previous version of this script can also still set brightness values to zero. Doing so will blackout monitors and you will need **boot into a live USB session, mount system drive, nagivate to .local/bin and change the script**
+ 
+ or
+ 
+**Blind** enter ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-2d-time-based.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will kill the script and you will need to change values before restart.
 
 -Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
 
