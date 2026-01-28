@@ -108,6 +108,7 @@ Mouse-based dim is off by default
 
 Idle dim is on by default
 
+Default inactivity time is set to (IDLE_TIMEOUT=90) seconds
 
 ### Run script at start up
 
