@@ -18,7 +18,11 @@ https://github.com/hisovereign/Fade-Monitors/blob/Fade-Monitors-enhanced-dimming
 
 ⚠️ Note: This version, fade-monitors-night-gamma, does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes and will increase cpu usage.
 
-⚠️ Note: Changing brightness values to zero will blackout monitors and you will need to ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-night-gamma.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will temporarily kill script and you can then change values and restart computer.
+⚠️ WARNING: Changing brightness values to zero will blackout monitors and you will need to **boot into a Mint live USB session, mount system drive, nagivate to .local/bin and change the script**
+
+or
+
+**BLIND** ctrl + alt +F2, put in your username, put in your password, then pkill -f fade-monitors-night-gamma.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). This will temporarily kill script and you can then change values and restart computer.
 
 # Fade-Monitors
 Mouse-aware and time based monitor dimming with gamma control (X11)
