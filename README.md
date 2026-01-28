@@ -131,6 +131,7 @@ Stop:
 
 
 Run script at start up
+**WARNING** Running script at start up and changing brightness values to zero will blackout monitors and you will need to boot into live usb session to recover
 
 	Open Start up applications> click + then custom command>browse and select the script you downloaded
 
