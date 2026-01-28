@@ -90,6 +90,8 @@ How to stop the script
 	"if [ -f ~/.fade_mouse_enabled ]; then rm ~/.fade_mouse_enabled; else touch ~/.fade_mouse_enabled; fi"
    	F10
 
+	"if [ -f ~/.idle_dim_enabled ]; then rm ~/.idle_dim_enabled; else touch ~/.idle>
+		F9
 
 4. Save and exit
 	crtl + o, enter. crtl + x
@@ -99,8 +101,12 @@ How to stop the script
 		killall xbindkeys
 		xbindkeys
 
-6. Press the F10 (or designated key) to toggle mouse-based fading.
+6. Press the F10 (or hotkey of choice) to toggle  mouse-based fading.
+7. Press F9 (or hotkey of choice) to toggle idle dim
 
+Mouse-based dim is off by default
+
+Idle dim is on by default
 
 
 ### Run script at start up
