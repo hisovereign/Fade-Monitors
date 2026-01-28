@@ -10,12 +10,12 @@
 # -----------------------------
 
 # Brightness levels
-ACTIVE_BRIGHTNESS=0.7
+ACTIVE_BRIGHTNESS=0.6
 DIM_BRIGHTNESS=0.2
 IDLE_BRIGHTNESS=0.1
 
 # Idle settings
-IDLE_TIMEOUT=60           # Seconds of inactivity before idle dim (e.g., 60s = 1 minute)
+IDLE_TIMEOUT=90           # Seconds of inactivity before idle dim (e.g., 60s = 1 minute)
 ENABLE_IDLE=true          # Set to false to disable idle dimming entirely
 
 # Smooth transition settings - MOUSE DIM
@@ -28,8 +28,9 @@ SMOOTH_DIM_IDLE_STEPS=10       # Steps for idle dimming transitions (slower)
 SMOOTH_DIM_IDLE_INTERVAL=0.02  # Seconds between steps for idle dimming
 INSTANT_IDLE_DIM=false         # Override smooth dimming with instant for idle
 
-# Toggle file
+# Toggle files
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
+IDLE_TOGGLE_FILE="$HOME/.idle_dim_enabled"
 
 # Poll intervals
 MOUSE_INTERVAL=0.1          # Mouse polling (10 times/sec)
@@ -116,6 +117,12 @@ read_monitors() {
 # Get idle time with robust error handling
 get_idle_time() {
     if [ "$ENABLE_IDLE" = false ]; then
+        echo "0"
+        return 0
+    fi
+    
+    # Check for disable file (inverted logic - file exists means idle is OFF)
+    if [ -f "$IDLE_TOGGLE_FILE" ]; then
         echo "0"
         return 0
     fi
@@ -364,6 +371,8 @@ echo "Dim brightness: $DIM_BRIGHTNESS" >&2
 echo "Idle brightness: $IDLE_BRIGHTNESS" >&2
 echo "Idle timeout: ${IDLE_TIMEOUT}s" >&2
 echo "Idle enabled: $ENABLE_IDLE" >&2
+echo "Idle toggle file: $IDLE_TOGGLE_FILE" >&2
+echo "Idle toggle state: $([ -f "$IDLE_TOGGLE_FILE" ] && echo "OFF (file exists = disabled)" || echo "ON (no file = enabled)")" >&2
 echo "" >&2
 echo "Mouse transition: ${SMOOTH_DIM_MOUSE_STEPS} steps, ${SMOOTH_DIM_MOUSE_INTERVAL}s interval" >&2
 echo "Mouse instant: $INSTANT_MOUSE_DIM" >&2
@@ -371,6 +380,8 @@ echo "Idle transition: ${SMOOTH_DIM_IDLE_STEPS} steps, ${SMOOTH_DIM_IDLE_INTERVA
 echo "Idle instant: $INSTANT_IDLE_DIM" >&2
 echo "" >&2
 echo "Toggle file: $TOGGLE_FILE" >&2
+echo "Mouse toggle state: $([ -f "$TOGGLE_FILE" ] && echo "ON (per-monitor dimming)" || echo "OFF (all monitors active)")" >&2
+echo "" >&2
 echo "Parallel updates: ENABLED" >&2
 echo "" >&2
 
