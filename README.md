@@ -128,8 +128,7 @@ or
 
 **BLIND** enter ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-enhanced-dimming.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). 
 
- 
-
+ **FLASH WARNING** Turning gamma on may conflict with other programns that alter gamma and can cause flashes
 
 -The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer even less cpu usage at cost of monitor dim lag. 0.2 will work. 0.3 is still functional but fast mouse movements may not trigger monitor dim.
 
