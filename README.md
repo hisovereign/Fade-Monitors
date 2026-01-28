@@ -112,6 +112,9 @@ Default inactivity time is set to (IDLE_TIMEOUT=90) seconds
 
 ### Run script at start up
 
+**WARNING** setting script to run at start up and changing brightness values to zero will require you to do one of the recovery options in improtant information as restarting will just run the script.
+
+
 Open Start up applications> click + then custom command>browse and select the script you downloaded
 
 Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
