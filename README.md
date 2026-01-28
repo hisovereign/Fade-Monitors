@@ -1,21 +1,16 @@
 # Fade-Monitors-enhanced-dimming
 
-Shebang! I'm told this is really close to pushing bash scripiting to its limits. **Experimental** 
+Shebang! I'm told this is really close to pushing bash scripiting to its limits (now in color!). **Experimental** 
 
-## Mouse-aware auto-monitor dimming with idle dimming (dims down all monitors when user has not touched pc for a set time.)(X11)
-
+## Mouse-aware auto-monitor dimming with idle dim, day/night dim, and optional gamma control (X11)
 
 
 This does not aim to replace password protected screen saver but to act as a quality of life addition to the computer experience. 
 
 
-**This script will auto dim whatever monitor your mouse is not on as well as idle dim to user's preferred settings** 
+**This script will auto dim whatever monitor your mouse is not on, idle dim to user's preferred settings, has an auto day/night dim, and has gamma controls** 
 	
--Mouse-based dimming can be toggled off with a hotkey.
-
-(This version does not have time-based brightness or gamma control but has been updated so user can set an inactivity time between their already set screen saver and/or sleep time.)
-
-**This is the updated stable and optimized version of the mouse-based auto-dim stand-alone script
+-Mouse-based dimming  and idle dim can be toggled on/off with a hotkey.
 
 
 
@@ -106,13 +101,13 @@ How to stop the script
 
 Mouse-based dim is off by default
 
-Idle dim is on by default
+Idle dim is off by default
 
-Default inactivity time is set to (IDLE_TIMEOUT=90) seconds
+Default inactivity time (idle dim) is set to (IDLE_TIMEOUT=1) second. Change in script.
 
 ### Run script at start up
 
-**WARNING** setting script to run at start up and changing brightness values to zero will require you to do one of the recovery options in improtant information as restarting will just run the script.
+**WARNING** setting script to run at start up and changing brightness values to zero will require you to do one of the recovery options in important information as restarting will just run the script.
 
 
 Open Start up applications> click + then custom command>browse and select the script you downloaded
