@@ -127,7 +127,7 @@ Do the same for xbindkeys (click + then custom command and search for .xbindkeys
 
 ### Important Information
 
-**Warning Blackout Monitor Warning** If you change the minimum values to zero it will blackout monitors and you will need to **boot into a Mint live USB session, mount system drive, nagivate to .local/bin and change the script**
+**Warning Blackout Monitor Warning** If you change the minimum values to zero it will blackout monitors and you will need to **boot into a live USB session, mount system drive, nagivate to .local/bin and change the script**
 
 or 
 
