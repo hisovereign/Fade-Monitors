@@ -1,23 +1,20 @@
 
 # THIS IS THE ORIGINAL FADE MONITORS SCRIPT. PLEASE USE THE UPDATED RELEASE FROM CURRENT BRANCH IN LINK BELOW
 
-https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable-time-based/README.md
-
-
+https://github.com/hisovereign/Fade-Monitors/blob/Fade-Monitors-enhanced-dimming/README.md
+(Fade Monitors enhanced dimming w/ idle dim, day/night dim, and optional gamma control.
+(0.5-2% cpu)
 
 ## FOR STANDALONE BRANCH (Mouse-Based Auto-Detecting 2D Monitor Dimming only)
 
 https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/README.md
 
-(These versions have been stabilized, auto-detect monitor positions and have been optomized to the best of current my knowledge)
+ ### For previous Fade Monitors time-based script
 
-### Experimental Branch **UPDATED** (Fade Monitors enhanced dimming. The stand-alone branch w/ idle dim, day/night dim, and optional gamma control.
-(0.5-2% cpu)
-
-https://github.com/hisovereign/Fade-Monitors/blob/Fade-Monitors-enhanced-dimming/README.md
+https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable-time-based/README.md
 
 
-⚠️ Note: This version, fade-monitors-night-gamma, does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes and will increase cpu usage.
+⚠️ Note: The following version, fade-monitors-night-gamma, does not implement single-instance locking. Running multiple Fade Monitor scripts simultaneously may cause gamma or brightness flashes and will increase cpu usage.
 
 ⚠️ WARNING: Changing brightness values to zero will blackout monitors and you will need to **boot into a Mint live USB session, mount system drive, nagivate to .local/bin and change the script**
 
