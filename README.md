@@ -5,6 +5,7 @@ https://github.com/hisovereign/Fade-Monitors/blob/Fade-Monitors-enhanced-dimming
 
 (Fade Monitors enhanced dimming w/ idle dim, day/night dim, and optional gamma control.
 (0.5-2% cpu)
+/home/m/.local/fade-monitors-ehnhanced-dimming-scripts/fademonitorsdemo.GIF
 
 ## FOR STANDALONE BRANCH (Mouse-Based Auto-Detecting 2D Monitor Dimming only)
 
