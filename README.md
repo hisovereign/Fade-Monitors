@@ -56,20 +56,6 @@ Preferred hotkey method (we are using bindkeys):
 
 		chmod +x ~/.local/bin/fade-monitors-enhanced-dimming.sh
 
-Run the script
-	
-	~/.local/bin/fade-monitors-enhanced-dimming.sh
-
-How to stop the script
-
-1. ctrl + c in terminal you started script or
-
-2. close the terminal you started script in or
-
-3. Open a new terminal, copy/paste then hit enter
-
-		pkill -f fade-monitors-enhanced-dimming.sh
-
 ### Using xbindkeys (recommended) (copy/paste commands into terminal)
 
 1. Install bindkeys (if you haven't already)
@@ -96,8 +82,22 @@ How to stop the script
 		killall xbindkeys
 		xbindkeys
 
-6. Press the F10 (or hotkey of choice) to toggle  mouse-based fading.
-7. Press F9 (or hotkey of choice) to toggle idle dim
+Run the script
+	
+	~/.local/bin/fade-monitors-enhanced-dimming.sh
+
+ Press the F10 (or hotkey of choice) to toggle  mouse-based fading.
+ Press F9 (or hotkey of choice) to toggle idle dim
+
+ How to stop the script
+
+1. ctrl + c in terminal you started script or
+
+2. close the terminal you started script in or
+
+3. Open a new terminal, copy/paste then hit enter
+
+		pkill -f fade-monitors-enhanced-dimming.sh
 
 Mouse-based dim is off by default
 
