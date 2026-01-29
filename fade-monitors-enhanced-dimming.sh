@@ -12,7 +12,7 @@
 # Day/Night brightness levels
 DAY_ACTIVE_BRIGHTNESS=0.7
 DAY_DIM_BRIGHTNESS=0.3
-NIGHT_ACTIVE_BRIGHTNESS=0.4
+NIGHT_ACTIVE_BRIGHTNESS=0.5
 NIGHT_DIM_BRIGHTNESS=0.2
 IDLE_BRIGHTNESS=0.1
 
@@ -79,6 +79,15 @@ LAST_ACTIVE_MON=""
 TRANSITION_IN_PROGRESS=false
 LAST_ACTIVITY_TIME=$(date +%s)
 
+# ============================================
+# HIDDEN SAFETY MINIMUM -
+# ============================================
+# Minimum brightness for all states except idle
+# Idle brightness (IDLE_BRIGHTNESS) is exempt from this minimum
+# This ensures screens never go completely black during active use
+MIN_BRIGHTNESS=0.1
+# ============================================
+
 # -----------------------------
 # FUNCTIONS
 # -----------------------------
@@ -125,8 +134,15 @@ read_monitors() {
             MON_Y1["$NAME"]=$Y_OFF
             MON_X2["$NAME"]=$((X_OFF + WIDTH))
             MON_Y2["$NAME"]=$((Y_OFF + HEIGHT))
-            MON_TARGET_BRIGHT["$NAME"]="$CURRENT_ACTIVE_BRIGHTNESS"
-            MON_CURRENT_BRIGHT["$NAME"]="$CURRENT_ACTIVE_BRIGHTNESS"
+            
+            # Apply minimum brightness for initial state (active state)
+            local initial_brightness="$CURRENT_ACTIVE_BRIGHTNESS"
+            if [ "$(echo "$initial_brightness < $MIN_BRIGHTNESS" | bc -l 2>/dev/null)" -eq 1 ]; then
+                initial_brightness="$MIN_BRIGHTNESS"
+            fi
+            
+            MON_TARGET_BRIGHT["$NAME"]="$initial_brightness"
+            MON_CURRENT_BRIGHT["$NAME"]="$initial_brightness"
         fi
     done
 }
@@ -273,6 +289,25 @@ apply_gamma() {
     fi
 }
 
+# Apply minimum brightness constraint (except for idle)
+apply_minimum_brightness() {
+    local target_brightness="$1"
+    local current_state="$2"  # "active" or "idle"
+    
+    # Don't apply minimum to idle state
+    if [ "$current_state" = "idle" ]; then
+        echo "$target_brightness"
+        return 0
+    fi
+    
+    # Apply minimum to active/dim states
+    if [ "$(echo "$target_brightness < $MIN_BRIGHTNESS" | bc -l 2>/dev/null)" -eq 1 ]; then
+        echo "$MIN_BRIGHTNESS"
+    else
+        echo "$target_brightness"
+    fi
+}
+
 # Smooth transition function
 smooth_transition() {
     local mode="$1"  # "mouse" or "idle"
@@ -334,11 +369,21 @@ smooth_transition() {
                     echo "${MON_TARGET_BRIGHT[$MON]}")
             fi
 
-            # Clamp between 0 and 1
-            if [ "$(echo "$current < 0" | bc -l 2>/dev/null)" -eq 1 ]; then
-                current=0
-            elif [ "$(echo "$current > 1" | bc -l 2>/dev/null)" -eq 1 ]; then
-                current=1
+            # Clamp between appropriate limits based on mode
+            if [ "$mode" = "idle" ]; then
+                # For idle: only clamp to 0-1
+                if [ "$(echo "$current < 0" | bc -l 2>/dev/null)" -eq 1 ]; then
+                    current=0
+                elif [ "$(echo "$current > 1" | bc -l 2>/dev/null)" -eq 1 ]; then
+                    current=1
+                fi
+            else
+                # For mouse/active: apply minimum brightness
+                if [ "$(echo "$current < $MIN_BRIGHTNESS" | bc -l 2>/dev/null)" -eq 1 ]; then
+                    current="$MIN_BRIGHTNESS"
+                elif [ "$(echo "$current > 1" | bc -l 2>/dev/null)" -eq 1 ]; then
+                    current=1
+                fi
             fi
 
             MON_CURRENT_BRIGHT["$MON"]="$current"
@@ -367,6 +412,7 @@ smooth_transition() {
 apply_idle_brightness() {
     # Set target brightness for idle state (all monitors same)
     for MON in "${MONITORS[@]}"; do
+        # IDLE_BRIGHTNESS is exempt from minimum constraint
         MON_TARGET_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
     done
 
@@ -415,6 +461,9 @@ apply_active_brightness() {
             # Toggle is OFF - all monitors get current active brightness
             local target="$CURRENT_ACTIVE_BRIGHTNESS"
         fi
+
+        # Apply minimum brightness constraint (except for idle, but we're in active state)
+        target=$(apply_minimum_brightness "$target" "active")
 
         # Check if target changed
         local current_target="${MON_TARGET_BRIGHT[$MON]}"
@@ -518,6 +567,7 @@ echo "Mouse toggle state: $([ -f "$TOGGLE_FILE" ] && \
 echo "ON (per-monitor dimming)" || echo "OFF (all monitors active)")" >&2
 echo "" >&2
 echo "Parallel updates: ENABLED" >&2
+echo "Hidden safety minimum: ${MIN_BRIGHTNESS} (active/dim states only)" >&2
 echo "" >&2
 
 # -----------------------------
