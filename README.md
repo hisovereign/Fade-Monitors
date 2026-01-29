@@ -11,7 +11,8 @@ https://github.com/hisovereign/Fade-Monitors/blob/mouse-dim-auto-2d-stable/READM
 
 (These versions have been stabilized, auto-detect monitor positions and have been optomized to the best of current my knowledge)
 
-### Experimental Branch (Fade Monitors enhanced dimming. The stand-alone branch w/ idle dim added. Idle dim settings at the cost of increased cpu usage.
+### Experimental Branch **UPDATED** (Fade Monitors enhanced dimming. The stand-alone branch w/ idle dim, day/night dim, and optional gamma control.
+(0.5-2% cpu)
 
 https://github.com/hisovereign/Fade-Monitors/blob/Fade-Monitors-enhanced-dimming/README.md
 
