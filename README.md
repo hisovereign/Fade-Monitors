@@ -105,6 +105,8 @@ Idle dim is off by default
 
 Default inactivity time (idle dim) is set to (IDLE_TIMEOUT=1) second. Change in script.
 
+Idle brightness (IDLE_BRIGHTNESS) is the ONLY setting that can be lowered to zero due to current logic; default is set to 0.1
+
 ### Run script at start up
 
 **WARNING** setting script to run at start up and changing brightness values to zero will require you to do one of the recovery options in important information as restarting will just run the script.
