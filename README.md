@@ -2,7 +2,7 @@
 # THIS IS THE ORIGINAL FADE MONITORS SCRIPT. PLEASE USE THE UPDATED RELEASE FROM CURRENT BRANCH IN LINK BELOW
 
 https://github.com/hisovereign/Fade-Monitors/blob/Fade-Monitors-enhanced-dimming/README.md
-
+![Image](https://github.com/user-attachments/assets/c6553ea4-8b95-4988-84ab-67ea316ee1d4)
 (Fade Monitors enhanced dimming w/ idle dim, day/night dim, and optional gamma control.
 (0.5-2% cpu)
 
