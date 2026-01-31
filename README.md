@@ -48,7 +48,7 @@ Preferred hotkey method (we are using bindkeys):
 ### Installation:
 
 1. Download the script
-	(click on fade-monitors-enhanced-dimming script and to the right of where it says RAW click download raw file)
+	(click on fade-monitors-enhanced-dimming script and to the right of where it says RAW click download raw file) (files side panel may collapse. It will be next to repo name, in top left, below code.)
 
 2. Move it to ~/.local/bin 
 
