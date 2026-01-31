@@ -53,9 +53,9 @@ Preferred hotkey method (we are using bindkeys):
 
 -files side panel may collapse. It will be next to repo name, in top left, below code.
 
-3. Move it to ~/.local/bin 
+2. Move it to ~/.local/bin 
 
-4. Make the script executable (open up a terminal and copy/paste commands then hit enter)
+3. Make the script executable (open up a terminal and copy/paste commands then hit enter)
 
 		chmod +x ~/.local/bin/fade-monitors-enhanced-dimming.sh
 
@@ -108,7 +108,9 @@ Idle dim is off by default
 
 Default inactivity time (idle dim) is set to (IDLE_TIMEOUT=1) second. Change in script.
 
-Idle brightness (IDLE_BRIGHTNESS) is the only setting that can be lowered to zero despite MIN_BRIGHTNESS=0.1. MIN_BRIGHTNESS can be changed however changing values to zero currently locks monitors into a blackout state when idle dim activates. 
+Idle brightness (IDLE_BRIGHTNESS) is the only setting that can be lowered to zero despite MIN_BRIGHTNESS=0.1. 
+
+MIN_BRIGHTNESS can be changed however changing values to zero currently locks monitors into a blackout state when idle dim activates. 
 
 ### Run script at start up
 
