@@ -1,7 +1,5 @@
 # Fade-Monitors-enhanced-dimming
 
-Shebang! I'm told this is really close to pushing bash scripiting to its limits (now in color!). **Experimental** 
-
 ## Mouse-aware auto-monitor dimming with idle dim, day/night dim, and optional gamma control (X11)
 
 
