@@ -22,7 +22,7 @@ This does not aim to replace password protected screen saver but to act as a qua
 
 -xprintidle
 
--hotkey toggle required for mouse-based dim (this readme will use bindkeys)
+-hotkey toggle is required for both mouse-based and idle dim (this readme will use bindkeys)
 
 ### Install requirements (copy, paste(ctrl + shift + v) commands into terminal)
 Open menu and search for terminal.
