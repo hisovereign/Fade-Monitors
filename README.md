@@ -108,9 +108,6 @@ Default inactivity time (idle dim) is set to (IDLE_TIMEOUT=1) second. Change in 
 
 IDLE_BRIGHTNESS can be lowered to zero despite MIN_BRIGHTNESS=0.1
 
-**warning** MIN_BRIGHTNESS can be changed however changing ACTIVE_BRIGHTNESS to zero currently locks monitors into a blackout state when idle dim activates. 
-
-DAY_DIM_BRIGHTNESS and NIGHT_DIM_BRIGHTNESS can be set to zero and work with idle dim.
 
 ### Settings
 Can be changed by opening, altering, and saving the script and are located near the top. eg change IDLE_TIMEOUT=1 to 30
@@ -141,7 +138,7 @@ Can be changed by opening, altering, and saving the script and are located near 
 
 ### Run script at start up
 
-**WARNING** setting script to run at start up and changing brightness values to zero will require you to do one of the recovery options in important information as restarting will just run the script.
+**WARNING** setting script to run at start up and changing ACTIVE_BRIGHTNESS values to zero will require you to do one of the recovery options in important information as restarting will just run the script.
 
 
 Open Start up applications> click + then custom command>browse and select the script you downloaded
@@ -156,11 +153,13 @@ Do the same for xbindkeys (click + then custom command and search for .xbindkeys
 
 ### Important Information
 
-**Warning Blackout Monitor Warning** If you change the minimum values to zero it will blackout monitors and you will need to **boot into a live USB session, mount system drive, nagivate to .local/bin and change the script**
+**Warning Blackout Monitor Warning** MIN_BRIGHTNESS can be changed however changing Active brightness values to zero and running at start up will blackout monitors when idle dim activates will need to **boot into a live USB session, mount system drive, nagivate to .local/bin and change the script**
 
 or 
 
 **BLIND** enter ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-enhanced-dimming.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). 
+
+DAY_DIM_BRIGHTNESS and NIGHT_DIM_BRIGHTNESS can be set to zero and work with idle dim.
 
  **FLASH WARNING** Turning gamma on may conflict with other programns that alter gamma and can cause flashes
 
