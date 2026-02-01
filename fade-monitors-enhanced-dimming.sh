@@ -11,14 +11,14 @@
 
 # Day/Night brightness levels
 DAY_ACTIVE_BRIGHTNESS=0.7
-DAY_DIM_BRIGHTNESS=0.3
+DAY_DIM_BRIGHTNESS=0.4
 NIGHT_ACTIVE_BRIGHTNESS=0.5
 NIGHT_DIM_BRIGHTNESS=0.2
 IDLE_BRIGHTNESS=0.1
 
 # Time window (24h, HHMM format)
 NIGHT_START=1700   # 17:00 PM
-DAY_START=0700     # 07:00 AM
+DAY_START=0730     # 07:00 AM
 
 # Gamma control (optional)
 ENABLE_GAMMA=false
@@ -32,12 +32,12 @@ ENABLE_IDLE=true         # Set to false to disable idle dimming entirely
 # Smooth transition settings - MOUSE DIM
 SMOOTH_DIM_MOUSE_STEPS=10      # Steps for mouse-based dimming transitions
 SMOOTH_DIM_MOUSE_INTERVAL=0.02 # Seconds between steps for mouse dimming
-INSTANT_MOUSE_DIM=true         # Override smooth dimming with instant for mouse
+INSTANT_MOUSE_DIM=false         # Override smooth dimming with instant for mouse
 
 # Smooth transition settings - IDLE DIM
 SMOOTH_DIM_IDLE_STEPS=10       # Steps for idle dimming transitions
-SMOOTH_DIM_IDLE_INTERVAL=0.02  # Seconds between steps for idle dimming
-INSTANT_IDLE_DIM=true          # Override smooth dimming with instant for idle
+SMOOTH_DIM_IDLE_INTERVAL=0.01  # Seconds between steps for idle dimming
+INSTANT_IDLE_DIM=false          # Override smooth dimming with instant for idle
 
 # Toggle files
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
@@ -80,10 +80,9 @@ TRANSITION_IN_PROGRESS=false
 LAST_ACTIVITY_TIME=$(date +%s)
 
 # ============================================
-# HIDDEN SAFETY MINIMUM -
+# HIDDEN SAFETY MINIMUM
 # ============================================
-# Minimum brightness for all states except idle
-# Idle brightness (IDLE_BRIGHTNESS) is exempt from this minimum
+# Minimum brightness for active day and night brightness
 # This ensures screens never go completely black during active use
 MIN_BRIGHTNESS=0.1
 # ============================================
@@ -207,7 +206,7 @@ update_time_state() {
     return 0
 }
 
-# Get idle time with robust error handling
+# Get idle time with error handling
 get_idle_time() {
     if [ "$ENABLE_IDLE" = false ]; then
         echo "0"
@@ -289,18 +288,19 @@ apply_gamma() {
     fi
 }
 
-# Apply minimum brightness constraint (except for idle)
+# Apply minimum brightness constraint (except for idle and dimmed monitors)
 apply_minimum_brightness() {
     local target_brightness="$1"
     local current_state="$2"  # "active" or "idle"
+    local is_dimmed="$3"      # "true" or "false" - whether this monitor is currently dimmed
     
-    # Don't apply minimum to idle state
-    if [ "$current_state" = "idle" ]; then
+    # Don't apply minimum to idle state or dimmed monitors
+    if [ "$current_state" = "idle" ] || [ "$is_dimmed" = "true" ]; then
         echo "$target_brightness"
         return 0
     fi
     
-    # Apply minimum to active/dim states
+    # Apply minimum to active (non-dimmed) states only
     if [ "$(echo "$target_brightness < $MIN_BRIGHTNESS" | bc -l 2>/dev/null)" -eq 1 ]; then
         echo "$MIN_BRIGHTNESS"
     else
@@ -371,15 +371,23 @@ smooth_transition() {
 
             # Clamp between appropriate limits based on mode
             if [ "$mode" = "idle" ]; then
-                # For idle: only clamp to 0-1
+                # For idle: only clamp to 0-1 (no minimum)
                 if [ "$(echo "$current < 0" | bc -l 2>/dev/null)" -eq 1 ]; then
                     current=0
                 elif [ "$(echo "$current > 1" | bc -l 2>/dev/null)" -eq 1 ]; then
                     current=1
                 fi
             else
-                # For mouse/active: apply minimum brightness
-                if [ "$(echo "$current < $MIN_BRIGHTNESS" | bc -l 2>/dev/null)" -eq 1 ]; then
+                # For mouse/active: only apply minimum to active monitors
+                # Dimmed monitors can go to 0
+                # Determine if this monitor should be dimmed
+                local is_dimmed=false
+                if [ -f "$TOGGLE_FILE" ] && [ "$MON" != "$LAST_ACTIVE_MON" ] && [ -n "$LAST_ACTIVE_MON" ]; then
+                    is_dimmed=true
+                fi
+                
+                # Only apply minimum if NOT dimmed
+                if [ "$is_dimmed" = "false" ] && [ "$(echo "$current < $MIN_BRIGHTNESS" | bc -l 2>/dev/null)" -eq 1 ]; then
                     current="$MIN_BRIGHTNESS"
                 elif [ "$(echo "$current > 1" | bc -l 2>/dev/null)" -eq 1 ]; then
                     current=1
@@ -451,19 +459,26 @@ apply_active_brightness() {
     # Set targets for each monitor
     local needs_update=false
     for MON in "${MONITORS[@]}"; do
+        # Determine if this monitor is dimmed
+        local is_dimmed=false
+        local target
+        
         if [ "$toggle_state" = true ]; then
             if [ "$MON" = "$active_mon" ]; then
-                local target="$CURRENT_ACTIVE_BRIGHTNESS"
+                target="$CURRENT_ACTIVE_BRIGHTNESS"
+                is_dimmed=false
             else
-                local target="$CURRENT_DIM_BRIGHTNESS"
+                target="$CURRENT_DIM_BRIGHTNESS"
+                is_dimmed=true
             fi
         else
             # Toggle is OFF - all monitors get current active brightness
-            local target="$CURRENT_ACTIVE_BRIGHTNESS"
+            target="$CURRENT_ACTIVE_BRIGHTNESS"
+            is_dimmed=false
         fi
 
-        # Apply minimum brightness constraint (except for idle, but we're in active state)
-        target=$(apply_minimum_brightness "$target" "active")
+        # Apply minimum brightness constraint (except for idle and dimmed monitors)
+        target=$(apply_minimum_brightness "$target" "active" "$is_dimmed")
 
         # Check if target changed
         local current_target="${MON_TARGET_BRIGHT[$MON]}"
@@ -567,7 +582,8 @@ echo "Mouse toggle state: $([ -f "$TOGGLE_FILE" ] && \
 echo "ON (per-monitor dimming)" || echo "OFF (all monitors active)")" >&2
 echo "" >&2
 echo "Parallel updates: ENABLED" >&2
-echo "Hidden safety minimum: ${MIN_BRIGHTNESS} (active/dim states only)" >&2
+echo "Hidden safety minimum: ${MIN_BRIGHTNESS} (active monitors only)" >&2
+echo "Note: Dimmed monitors can be set to 0" >&2
 echo "" >&2
 
 # -----------------------------
