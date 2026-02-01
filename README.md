@@ -106,7 +106,7 @@ Idle dim is off by default
 
 Default inactivity time (idle dim) is set to (IDLE_TIMEOUT=1) second. Change in script.
 
-IDLE_BRIGHTNESS can be lowered to zero despite MIN_BRIGHTNESS=0.1
+IDLE_BRIGHTNESS, DAY_DIM_BRIGHTNESS, and NIGHT_DIM_BRIGHTNESS can be lowered to zero
 
 
 ### Settings
@@ -159,7 +159,6 @@ or
 
 **BLIND** enter ctrl + alt + F2, put in your username, put in your password, then pkill -f fade-monitors-enhanced-dimming.sh, then (ctrl + alt + F1) or sometimes (ctrl + alt + F7). 
 
-DAY_DIM_BRIGHTNESS and NIGHT_DIM_BRIGHTNESS can be set to zero and work with idle dim.
 
  **FLASH WARNING** Turning gamma on may conflict with other programns that alter gamma and can cause flashes
 
