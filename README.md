@@ -106,9 +106,11 @@ Idle dim is off by default
 
 Default inactivity time (idle dim) is set to (IDLE_TIMEOUT=1) second. Change in script.
 
-Idle brightness (IDLE_BRIGHTNESS) is the only setting that can be lowered to zero despite MIN_BRIGHTNESS=0.1. 
+IDLE_BRIGHTNESS can be lowered to zero despite MIN_BRIGHTNESS=0.1
 
-MIN_BRIGHTNESS can be changed however changing values to zero currently locks monitors into a blackout state when idle dim activates. 
+**warning** MIN_BRIGHTNESS can be changed however changing ACTIVE_BRIGHTNESS to zero currently locks monitors into a blackout state when idle dim activates. 
+
+DAY_DIM_BRIGHTNESS and NIGHT_DIM_BRIGHTNESS can be set to zero and work with idle dim.
 
 ### Settings
 Can be changed by opening, altering, and saving the script and are located near the top. eg change IDLE_TIMEOUT=1 to 30
