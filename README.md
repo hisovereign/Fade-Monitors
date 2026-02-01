@@ -112,6 +112,10 @@ IDLE_BRIGHTNESS, DAY_DIM_BRIGHTNESS, and NIGHT_DIM_BRIGHTNESS can be lowered to 
 ### Settings
 Can be changed by opening, altering, and saving the script and are located near the top. eg change IDLE_TIMEOUT=1 to 30
 
+To turn gamma on make ENABLE_GAMMA=false =true
+
+ENABLE_IDLE, INSTANT_MOUSE_DIM, and INSTANT_IDLE_DIM can also be toggled on and off by making them =true or =false.
+
 **Day/Night brightness levels**
 	
 	DAY_ACTIVE_BRIGHTNESS=0.7
