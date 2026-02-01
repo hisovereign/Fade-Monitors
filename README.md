@@ -138,7 +138,7 @@ Can be changed by opening, altering, and saving the script and are located near 
 
 ### Run script at start up
 
-**WARNING** setting script to run at start up and changing ACTIVE_BRIGHTNESS values to zero will require you to do one of the recovery options in important information as restarting will just run the script.
+**WARNING** setting script to run at start up and changing ACTIVE_BRIGHTNESS values to zero will blckout monitors and require you to do one of the recovery options in important information as restarting will just run the script.
 
 
 Open Start up applications> click + then custom command>browse and select the script you downloaded
@@ -153,7 +153,7 @@ Do the same for xbindkeys (click + then custom command and search for .xbindkeys
 
 ### Important Information
 
-**Warning Blackout Monitor Warning** MIN_BRIGHTNESS can be changed however changing Active brightness values to zero and running at start up will blackout monitors when idle dim activates will need to **boot into a live USB session, mount system drive, nagivate to .local/bin and change the script**
+**Warning Blackout Monitor Warning** MIN_BRIGHTNESS can be changed however changing Active brightness values to zero will blackout monitors when idle dim activates and if you set it to run at start up you will need to **boot into a live USB session, mount system drive, nagivate to .local/bin and change the script**
 
 or 
 
