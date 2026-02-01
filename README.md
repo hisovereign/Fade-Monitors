@@ -113,23 +113,27 @@ MIN_BRIGHTNESS can be changed however changing values to zero currently locks mo
 ### Settings
 Can be changed by opening, altering, and saving the script and are located near the top. eg change IDLE_TIMEOUT=1 to 30
 
-# Day/Night brightness levels
+**Day/Night brightness levels**
+	
 	DAY_ACTIVE_BRIGHTNESS=0.7
 	DAY_DIM_BRIGHTNESS=0.3
 	NIGHT_ACTIVE_BRIGHTNESS=0.5
 	NIGHT_DIM_BRIGHTNESS=0.2
 	IDLE_BRIGHTNESS=0.1
 
-# Time window (24h, HHMM format)
+**Time window** (24h, HHMM format)
+	
 	NIGHT_START=1700   # 17:00 PM
 	DAY_START=0730     # 07:00 AM
 
-# Gamma control (optional)
+**Gamma control** (optional)
+	
 	ENABLE_GAMMA=false
 	DAY_GAMMA="1.0:1.0:1.0"
 	NIGHT_GAMMA="1.0:0.85:0.1"
 
-# Idle settings
+**Idle settings**
+	
 	IDLE_TIMEOUT=1
 	ENABLE_IDLE=true
 
