@@ -111,7 +111,7 @@ Idle brightness (IDLE_BRIGHTNESS) is the only setting that can be lowered to zer
 MIN_BRIGHTNESS can be changed however changing values to zero currently locks monitors into a blackout state when idle dim activates. 
 
 ### Settings
-Can be changed by opening, altering, and saving the script and are located near the top. eg change IDLE_TIMEOUT=$\color{Magenta}{\textbf{1}}$ to $\color{Magenta}{\textbf{30}}$
+Can be changed by opening, altering, and saving the script and are located near the top. eg change IDLE_TIMEOUT=1 to 30
 
 # Day/Night brightness levels
 	DAY_ACTIVE_BRIGHTNESS=0.7
