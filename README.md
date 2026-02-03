@@ -53,6 +53,8 @@ Preferred hotkey method (we are using bindkeys):
 
 2. Move it to ~/.local/bin 
 
+	-if you don't see [.local] right click and show hidden files
+
 3. Make the script executable (open up a terminal and copy/paste commands then hit enter)
 
 		chmod +x ~/.local/bin/fade-monitors-enhanced-dimming.sh
