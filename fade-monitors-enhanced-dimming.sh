@@ -11,7 +11,7 @@
 
 # Day/Night brightness levels
 DAY_ACTIVE_BRIGHTNESS=0.7
-DAY_DIM_BRIGHTNESS=0.4
+DAY_DIM_BRIGHTNESS=0.3
 NIGHT_ACTIVE_BRIGHTNESS=0.5
 NIGHT_DIM_BRIGHTNESS=0.2
 IDLE_BRIGHTNESS=0.1
@@ -26,13 +26,13 @@ DAY_GAMMA="1.0:1.0:1.0"
 NIGHT_GAMMA="1.0:0.85:0.1"
 
 # Idle settings
-IDLE_TIMEOUT=1           # Seconds of inactivity before idle dim
+IDLE_TIMEOUT=60           # Seconds of inactivity before idle dim
 ENABLE_IDLE=true         # Set to false to disable idle dimming entirely
 
 # Smooth transition settings - MOUSE DIM
 SMOOTH_DIM_MOUSE_STEPS=10      # Steps for mouse-based dimming transitions
 SMOOTH_DIM_MOUSE_INTERVAL=0.02 # Seconds between steps for mouse dimming
-INSTANT_MOUSE_DIM=false         # Override smooth dimming with instant for mouse
+INSTANT_MOUSE_DIM=true         # Override smooth dimming with instant for mouse
 
 # Smooth transition settings - IDLE DIM
 SMOOTH_DIM_IDLE_STEPS=10       # Steps for idle dimming transitions
@@ -44,7 +44,7 @@ TOGGLE_FILE="$HOME/.fade_mouse_enabled"
 IDLE_TOGGLE_FILE="$HOME/.idle_dim_enabled"
 
 # Poll intervals
-MOUSE_INTERVAL=0.1          # Mouse polling (10 times/sec)
+MOUSE_INTERVAL=0.3          # Mouse polling
 IDLE_CHECK_INTERVAL=1       # Idle check interval (every 1 second)
 GEOM_INTERVAL=2             # Monitor geometry check interval
 TIME_CHECK_INTERVAL=30      # Time state check interval (every 30 seconds)
@@ -82,7 +82,7 @@ LAST_ACTIVITY_TIME=$(date +%s)
 # ============================================
 # HIDDEN SAFETY MINIMUM
 # ============================================
-# Minimum brightness for active day and night brightness
+# Minimum limit for active day and night brightness
 # This ensures screens never go completely black during active use
 MIN_BRIGHTNESS=0.1
 # ============================================
@@ -213,7 +213,7 @@ get_idle_time() {
         return 0
     fi
 
-    # Check for disable file (inverted logic - file exists means idle is OFF)
+    # Check for disable file
     if [ -f "$IDLE_TOGGLE_FILE" ]; then
         echo "0"
         return 0
@@ -222,23 +222,37 @@ get_idle_time() {
     local idle_ms=0
     local max_attempts=3
 
-    # Try multiple times with increasing backoff
+    # Try multiple times
     for attempt in $(seq 1 $max_attempts); do
         idle_ms=$(xprintidle 2>/dev/null)
 
         if [ $? -eq 0 ] && [[ "$idle_ms" =~ ^[0-9]+$ ]]; then
-            echo "$((idle_ms / 1000))"
+            idle_seconds=$((idle_ms / 1000))
+            
+            # CRITICAL: Check if system just woke from sleep
+            # If idle time is more than 5 minutes, but system just woke, reset to 0
+            if [ "$idle_seconds" -ge 300 ] && [ -f "/sys/power/resume_time" ]; then
+                RESUME_TIME=$(cat "/sys/power/resume_time" 2>/dev/null || echo "0")
+                if [ -n "$RESUME_TIME" ] && [ "$RESUME_TIME" != "0" ]; then
+                    current_time=$(date +%s)
+                    # If we woke within the last 30 seconds, ignore huge idle time
+                    if [ $((current_time - RESUME_TIME)) -lt 30 ]; then
+                        echo "0"
+                        return 0
+                    fi
+                fi
+            fi
+            
+            echo "$idle_seconds"
             return 0
         fi
 
-        # If it's the last attempt, return 0 (assume active)
         if [ $attempt -eq $max_attempts ]; then
             echo "0"
             return 1
         fi
 
-        # Wait before retry
-        sleep 0.1
+        sleep 0.5
     done
 }
 
