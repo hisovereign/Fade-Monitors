@@ -16,11 +16,13 @@ This does not aim to replace password protected screen saver but to act as a qua
 
 -x11 session
 
--xrandr - controls montior brightness/gamma
+-xrandr     - controls montior brightness/gamma
 
--xdotool - reads mouse position
+-xdotool    - reads mouse position
 
--xprintidle
+-xprintidle - for idle dim
+
+-bc         - arbitrary precision calculator language
 
 -hotkey toggle is required for both mouse-based and idle dim (this readme will use bindkeys)
 
@@ -35,7 +37,7 @@ Then install
 
 	sudo apt-get install xprintidle bc xdotool x11-xserver-utils
 
-(xrandr will be installed if not already)
+   (xrandr will be installed if not already)
 
 
 Preferred hotkey method (we are using bindkeys):
@@ -47,13 +49,13 @@ Preferred hotkey method (we are using bindkeys):
 
 1. Download the script
 
--click on fade-monitors-enhanced-dimming script and to the right of where it says RAW click download raw file
+   -click on fade-monitors-enhanced-dimming script and to the right of where it says RAW click download raw file
 
--files side panel may collapse. It will be next to repo name, in top left, below code.
+   -files side panel may collapse. It will be next to repo name, in top left, below code.
 
 2. Move it to ~/.local/bin 
 
-	-if you don't see [.local] right click and show hidden files
+   -if you don't see (.local) right click and show hidden files
 
 3. Make the script executable (open up a terminal and copy/paste commands then hit enter)
 
@@ -89,8 +91,9 @@ Run the script
 	
 	~/.local/bin/fade-monitors-enhanced-dimming.sh
 
- Press the F10 (or hotkey of choice) to toggle  mouse-based fading.
- Press F9 (or hotkey of choice) to toggle idle dim
+   Press the F10 (or hotkey of choice) to toggle  mouse-based fading
+ 
+   Press F9 (or hotkey of choice) to toggle idle dim
 
  How to stop the script
 
@@ -106,7 +109,7 @@ Mouse-based dim is off by default
 
 Idle dim is off by default
 
-Default inactivity time (idle dim) is set to (IDLE_TIMEOUT=1) second. Change in script.
+Default inactivity time (idle dim) is set to (IDLE_TIMEOUT=60) second. Change in script.
 
 IDLE_BRIGHTNESS, DAY_DIM_BRIGHTNESS, and NIGHT_DIM_BRIGHTNESS can be lowered to zero
 
@@ -157,6 +160,13 @@ Do the same for xbindkeys (click + then custom command and search for .xbindkeys
 	
 	xrandr --output <output-name> --brightness 1.0
 
+
+### Past releases without idle dim
+Mouse-aware with day/night mode and gamma control
+
+https://github.com/hisovereign/Fade-Monitors/tree/mouse-dim-auto-2d-stable-time-based
+
+
 ### Important Information
 
 **Warning Blackout Monitor Warning** MIN_BRIGHTNESS can be changed however changing Active brightness values to zero will blackout monitors when idle dim activates and if you set it to run at start up you will need to **boot into a live USB session, mount system drive, nagivate to .local/bin and change the script**
@@ -168,7 +178,6 @@ or
 
  **FLASH WARNING** Turning gamma on may conflict with other programns that alter gamma and can cause flashes
 
--The mouse polling interval is intentionally tuned for low CPU usage. Advanced users may adjust MOUSE_INTERVAL in the script if they prefer even less cpu usage at cost of monitor dim lag. 0.2 will work. 0.3 is still functional but fast mouse movements may not trigger monitor dim.
-
+-The mouse polling interval is intentionally tuned for low CPU usage. Advanced users can adjust MOUSE_INTERVAL in the script to their preference
 
 -Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
