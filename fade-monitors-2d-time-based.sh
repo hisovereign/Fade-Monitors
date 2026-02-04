@@ -29,7 +29,7 @@ NIGHT_GAMMA="1.0:0.85:0.1"
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
 
 # Poll intervals
-MOUSE_INTERVAL=0.1
+MOUSE_INTERVAL=0.3
 GEOM_INTERVAL=2
 
 # Stop file - check in loop
