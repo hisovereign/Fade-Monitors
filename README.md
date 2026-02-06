@@ -184,7 +184,7 @@ or
 
 **Tested on Linux Mint Cinnamon 22.2, cinnamon version: 6.48, Linux kernal: 6.18.8-x64v3-xanmod1**
 
-**-Update-** realized bug probably happened after clearing system temporay files and cache then letting my pc go into screensaver/sleep. Going to leave this code here for anyone who wants to stop script during screen saver (with slight brigtness pop at lock since brightness is reseting)
+**-Update-** realized bug probably happened after clearing system temporay files and cache then letting my pc go into screensaver/sleep wihtout restarting. Going to leave this code here for anyone who wants to stop script during screen saver (with slight brigtness pop at lock since brightness is reseting)
 
 
 On rare occasion screen saver does not show password and locks user out in Mint Cinnamon (not sure for others) and you will need to restart. This is a documented past bug with screen saver however it might be triggered by the script since the script directly interacts with xrandr. 
