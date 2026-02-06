@@ -184,10 +184,13 @@ or
 
 **Tested on Linux Mint Cinnamon 22.2, cinnamon version: 6.48, Linux kernal: 6.18.8-x64v3-xanmod1**
 
--On rare occasion screen saver does not show password and locks user out in Mint Cinnamon (not sure for others) and you will need to restart. This is a documented past bug with screen saver however it might be triggered by the script since the script directly interacts with xrandr. 
+**-Update-** realized bug probably happened after clearing system temporay files and cache then letting my pc go into screensaver/sleep. Going to leave this code here for anyone who wants to stop script during screen saver (with slight brigtness pop at lock since brightness is reseting)
 
 
-I have a temporary fix that ill place here for the time being. It resets brightness control during screen saver state in an attempt to mitgate the issue. Copy/paste this first one between get_idle_time() FUNCTION and # Get mouse position
+On rare occasion screen saver does not show password and locks user out in Mint Cinnamon (not sure for others) and you will need to restart. This is a documented past bug with screen saver however it might be triggered by the script since the script directly interacts with xrandr. 
+
+
+I have a work around that ill place here for the time being. It resets brightness control during screen saver state in an attempt to mitgate the issue. Copy/paste this first one between get_idle_time() FUNCTION and # Get mouse position
 
 ```# Check if screen is locked (Cinnamon-specific)
 is_screen_locked() {
