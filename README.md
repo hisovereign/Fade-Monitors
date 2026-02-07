@@ -4,7 +4,7 @@
 
 
 This does not aim to replace password protected screen saver but to act as a quality of life addition to the computer experience. 
-
+Demo https://youtu.be/r4gVBZohfMI
 
 **This script will auto dim whatever monitor your mouse is not on, idle dim to user's preferred settings, has an auto day/night dim, and has gamma controls** 
 	
