@@ -178,7 +178,7 @@ or
 
  **FLASH WARNING** Turning gamma on may conflict with other programns that alter gamma and can cause flashes
 
--The mouse polling interval is intentionally tuned for low CPU usage. Advanced users can adjust MOUSE_INTERVAL in the script to their preference
+-The mouse polling interval is intentionally tuned for low CPU usage. Advanced users can adjust MOUSE_INTERVAL in the script to their preference and this will affect dim responsivness eg. 0.5, 0.3, 0.1
 
 -Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
 
