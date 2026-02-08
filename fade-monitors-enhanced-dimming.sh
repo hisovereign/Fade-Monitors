@@ -44,7 +44,7 @@ TOGGLE_FILE="$HOME/.fade_mouse_enabled"
 IDLE_TOGGLE_FILE="$HOME/.idle_dim_enabled"
 
 # Poll intervals
-MOUSE_INTERVAL=0.3          # Mouse polling
+MOUSE_INTERVAL=1.0          # Mouse polling
 IDLE_CHECK_INTERVAL=1       # Idle check interval (every 1 second)
 GEOM_INTERVAL=2             # Monitor geometry check interval
 TIME_CHECK_INTERVAL=30      # Time state check interval (every 30 seconds)
