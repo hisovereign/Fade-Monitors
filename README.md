@@ -7,11 +7,13 @@ This does not aim to replace password protected screen saver but to act as a qua
 
 Demo https://youtu.be/r4gVBZohfMI
 
-**This script will auto dim whatever monitor your mouse is not on, idle dim to user's preferred settings, has an auto day/night dim, and has gamma controls** 
+-This script will auto dim whatever monitor your mouse is not on, idle dim to user's preferred settings, has an auto day/night dim, and has gamma controls
 	
 -Mouse-based dimming  and idle dim can be toggled on/off with a hotkey.
 
+
 **For .deb release installation and config change instructions see bottom of readme**
+
 
 ### Requirements:
 
