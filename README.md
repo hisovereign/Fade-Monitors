@@ -270,7 +270,7 @@ Command to open readme
 
 **settings change** 
 
-Open a terminal, copy/paste ( ctrl + shift + ) command then hit enter
+Open a terminal, copy/paste ( ctrl + shift + v ) command then hit enter
 
 	sudo nano /etc/fade-monitors/config
 
