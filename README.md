@@ -11,7 +11,7 @@ Demo https://youtu.be/r4gVBZohfMI
 	
 -Mouse-based dimming  and idle dim can be toggled on/off with a hotkey.
 
-
+**For .deb release installation and config change instructions see bottom of readme**
 
 ### Requirements:
 
@@ -248,3 +248,35 @@ And place this right above # -------- Apply brightness based on state --------
     fi
 ```
 Save and restart script. 
+
+### .deb Installation ###
+
+1. Download the latest `.deb` from the [Releases page](https://github.com/hisovereign/Fade-Monitors/releases)
+
+2. After download, open a terminal and copy/paste (ctrl + shift + v) command below then hit enter 
+
+        sudo dpkg -i fade-monitors.deb
+        sudo apt install -f
+
+OR
+
+Right-click on the fade-monitors.deb package>open with package installer>install package then open a terminal and run sudo apt install -f
+
+Mouse-aware and idle dim need toggles for use and user will need to maually set or install the hotkeys. This readme has install instructions for and uses xbindkeys
+
+Command to open readme
+
+	nano /usr/share/doc/fade-monitors/README.md
+
+**settings change** 
+
+Open a terminal, copy/paste ( ctrl + shift + ) command then hit enter
+
+	sudo nano /etc/fade-monitors/config
+
+save (ctrl + o, enter), exit (ctrl + x)
+
+Restart fade-monitors
+
+	sudo pkill -f fade-monitors
+	fade-monitors
