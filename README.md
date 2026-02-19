@@ -183,6 +183,8 @@ or
 
 -The mouse polling interval is intentionally tuned for low CPU usage. Advanced users can adjust MOUSE_INTERVAL in the script to their preference and this will affect dim responsivness eg. 0.5, 0.3, 0.1
 
+- GAMERS - mouse-polling (interval) determines how often script checks your mouse position. Lower values (0.3, 0.1) increase cpu usage as the script polls more frequently; this causes fps drops depending on the poll rate. 1.0 seems to be imperceptible but it does add around a 1 second delay to monitor dimming. 
+
 -Earlier versions sometimes caused brief flashes if multiple instances of Fade Monitors script ran simultaneously. This has been mitigated with single-instance locking however it is still possible if ran alongside a script without single-instance locking.
 
 **Tested on Linux Mint Cinnamon 22.2, cinnamon version: 6.48, Linux kernal: 6.18.8-x64v3-xanmod1**
