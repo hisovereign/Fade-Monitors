@@ -169,6 +169,21 @@ Mouse-aware with day/night mode and gamma control
 
 https://github.com/hisovereign/Fade-Monitors/tree/mouse-dim-auto-2d-stable-time-based
 
+### fade-monitors Cinnamon applet installation
+
+Copy the fade-monitors@hisovereign folder and place it in ~/.local/share/cinnamon/applets
+
+You can do this manually with these steps
+
+-Create a new folder in ~/.local/share/cinnamon/applets and name it fade-monitors@hisovereign
+
+-download the applet.js and metadata.json and palce it in folder you made
+
+-restart cinnamon (alt + F2, type r then hit enter) or restart pc
+
+-Right-click on panel > click on applets> add fade-monitors applet to panel
+
+Note - applet only works with fade-monitors-enhanced-dimming script
 
 ### Important Information
 
