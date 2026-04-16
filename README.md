@@ -56,11 +56,13 @@ Preferred hotkey method (we are using bindkeys):
 
    -files side panel may collapse. It will be next to repo name, in top left, below code.
 
-2. Move it to ~/.local/bin 
+3. Move it to ~/.local/bin 
 
    -if you don't see (.local) right click and show hidden files
 
-3. Make the script executable (open up a terminal and copy/paste commands then hit enter)
+   -if you don't have the folder /bin in ~/.local/ then create it
+
+5. Make the script executable (open up a terminal and copy/paste commands then hit enter)
 
 		chmod +x ~/.local/bin/fade-monitors-enhanced-dimming.sh
 
