@@ -120,7 +120,10 @@ IDLE_BRIGHTNESS, DAY_DIM_BRIGHTNESS, and NIGHT_DIM_BRIGHTNESS can be lowered to 
 
 
 ### Settings
-Can be changed by opening, altering, and saving the script and are located near the top. eg change IDLE_TIMEOUT=1 to 30
+Can be changed by opening, altering, and saving the script and are located near the top. 
+
+eg change IDLE_TIMEOUT=1 to 30, change DAY_ACTIVE_BRIGHTNESS=0.7 to =1.0 
+
 
 To turn gamma on make ENABLE_GAMMA=false =true
 
