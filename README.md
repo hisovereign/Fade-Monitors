@@ -60,7 +60,7 @@ Preferred hotkey method (we are using bindkeys):
 
    -if you don't see (.local) right click and show hidden files
 
-   -if you don't have the folder /bin in ~/.local/ then create it
+   -if you don't have a folder named bin in ~/.local/ then create it
 
 5. Make the script executable (open up a terminal and copy/paste commands then hit enter)
 
