@@ -58,7 +58,7 @@ Preferred hotkey method (we are using bindkeys):
 
 3. Move it to ~/.local/bin 
 
-   -if you don't see (.local) right click and show hidden files
+   -if you don't see (.local) right click while in /home and show hidden files
 
    -if you don't have a folder named bin in ~/.local/ then create it
 
