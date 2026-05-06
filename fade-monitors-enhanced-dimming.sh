@@ -1,6 +1,7 @@
 #!/bin/bash
 # -----------------------------
 # Enhanced Mouse-Based Multi-Monitor Dimming with Idle, Day/Night Modes, and Gamma Control
+# (version with time-transition, per‑transition lock, smooth gamma, and idle gamma fade)
 # -----------------------------
 # Requires: xrandr, xdotool, xprintidle, bc
 # -----------------------------
@@ -12,8 +13,8 @@
 # Day/Night brightness levels
 DAY_ACTIVE_BRIGHTNESS=0.7
 DAY_DIM_BRIGHTNESS=0.3
-NIGHT_ACTIVE_BRIGHTNESS=0.5
-NIGHT_DIM_BRIGHTNESS=0.2
+NIGHT_ACTIVE_BRIGHTNESS=0.4
+NIGHT_DIM_BRIGHTNESS=0.1
 IDLE_BRIGHTNESS=0.1
 
 # Time window (24h, HHMM format)
@@ -27,17 +28,22 @@ NIGHT_GAMMA="1.0:0.85:0.1"
 
 # Idle settings
 IDLE_TIMEOUT=90              # Seconds of inactivity before idle dim
-ENABLE_IDLE=true             # Set to false to disable idle dimming entirely
+ENABLE_IDLE=false             # Set to false to disable idle dimming entirely
 
 # Smooth transition settings - MOUSE DIM
 SMOOTH_DIM_MOUSE_STEPS=10        # Steps for mouse-based dimming transitions
 SMOOTH_DIM_MOUSE_INTERVAL=0.01   # Seconds between steps for mouse dimming
-INSTANT_MOUSE_DIM=false          # Override smooth dimming with instant for mouse
+INSTANT_MOUSE_DIM=true          # Override smooth dimming with instant for mouse
 
 # Smooth transition settings - IDLE DIM
 SMOOTH_DIM_IDLE_STEPS=10         # Steps for idle dimming transitions
 SMOOTH_DIM_IDLE_INTERVAL=0.01    # Seconds between steps for idle dimming
 INSTANT_IDLE_DIM=false           # Override smooth dimming with instant for idle
+
+# Smooth transition settings - TIME (day/night) DIM
+SMOOTH_DIM_TIME_STEPS=20         # Steps for day/night transitions
+SMOOTH_DIM_TIME_INTERVAL=0.05    # Seconds between steps for time-based dimming
+INSTANT_TIME_DIM=false           # Override smooth dimming with instant for time
 
 # Toggle files
 TOGGLE_FILE="$HOME/.fade_mouse_enabled"
@@ -55,6 +61,9 @@ TIME_CHECK_INTERVAL=30       # Time state check interval (every 30 seconds)
 LOCKFILE="$HOME/.fade_mouse.lock"
 exec 9>"$LOCKFILE" || exit 1
 flock -n 9 || exit 0
+
+# Transition lock file (used internally by smooth_transition and smooth_gamma_transition)
+TRANSITION_LOCKFILE="$HOME/.fade_mouse.transition.lock"
 
 # -----------------------------
 # Internal state
@@ -75,8 +84,8 @@ CURRENT_TIME_STATE="day"             # "day" or "night"
 CURRENT_ACTIVE_BRIGHTNESS="$DAY_ACTIVE_BRIGHTNESS"
 CURRENT_DIM_BRIGHTNESS="$DAY_DIM_BRIGHTNESS"
 CURRENT_GAMMA="$DAY_GAMMA"
+LAST_APPLIED_GAMMA=""                # tracks last applied gamma
 LAST_ACTIVE_MON=""
-TRANSITION_IN_PROGRESS=false
 LAST_ACTIVITY_TIME=$(date +%s)
 
 # ============================================
@@ -106,7 +115,7 @@ cleanup() {
 
 trap cleanup EXIT SIGINT SIGTERM
 
-# Read monitor geometry
+# Read monitor geometry (unchanged)
 read_monitors() {
     MONITORS=()
     MON_X1=()
@@ -165,6 +174,56 @@ is_night() {
     fi
 }
 
+# Smooth gamma-only transition (used when idle dimmed)
+smooth_gamma_transition() {
+    # Only if gamma is enabled and the target differs
+    [ "$ENABLE_GAMMA" = true ] || return
+    [ "$CURRENT_GAMMA" != "$LAST_APPLIED_GAMMA" ] || return
+
+    # Acquire the transition lock to avoid conflicts with any other transition
+    exec 10>"$TRANSITION_LOCKFILE" 2>/dev/null || return 1
+    if ! flock -n 10; then
+        exec 10>&-
+        return 0
+    fi
+
+    local steps="$SMOOTH_DIM_TIME_STEPS"
+    local interval="$SMOOTH_DIM_TIME_INTERVAL"
+
+    IFS=':' read -r -a start_g <<< "${LAST_APPLIED_GAMMA:-1.0:1.0:1.0}"
+    IFS=':' read -r -a target_g <<< "$CURRENT_GAMMA"
+
+    local gamma_step_r gamma_step_g gamma_step_b
+    gamma_step_r=$(echo "scale=6; (${target_g[0]} - ${start_g[0]}) / $steps" | bc 2>/dev/null || echo 0)
+    gamma_step_g=$(echo "scale=6; (${target_g[1]} - ${start_g[1]}) / $steps" | bc 2>/dev/null || echo 0)
+    gamma_step_b=$(echo "scale=6; (${target_g[2]} - ${start_g[2]}) / $steps" | bc 2>/dev/null || echo 0)
+
+    for ((step=1; step<=steps; step++)); do
+        local r g b
+        r=$(echo "scale=6; ${start_g[0]} + ${gamma_step_r} * $step" | bc 2>/dev/null || echo "${target_g[0]}")
+        g=$(echo "scale=6; ${start_g[1]} + ${gamma_step_g} * $step" | bc 2>/dev/null || echo "${target_g[1]}")
+        b=$(echo "scale=6; ${start_g[2]} + ${gamma_step_b} * $step" | bc 2>/dev/null || echo "${target_g[2]}")
+
+        local current_gamma="${r}:${g}:${b}"
+        for MON in "${MONITORS[@]}"; do
+            # Brightness stays at idle level; only gamma changes
+            xrandr --output "$MON" --brightness "$IDLE_BRIGHTNESS" --gamma "$current_gamma" 2>/dev/null &
+        done
+        wait
+        sleep "$interval"
+    done
+
+    # Final exact gamma
+    for MON in "${MONITORS[@]}"; do
+        xrandr --output "$MON" --brightness "$IDLE_BRIGHTNESS" --gamma "$CURRENT_GAMMA" 2>/dev/null &
+    done
+    wait
+
+    LAST_APPLIED_GAMMA="$CURRENT_GAMMA"
+    exec 10>&-
+}
+
+# Update time state – uses smooth gamma transition when idle
 update_time_state() {
     local new_time_state
 
@@ -189,23 +248,20 @@ update_time_state() {
             CURRENT_GAMMA="$DAY_GAMMA"
         fi
 
-        # Apply gamma change immediately if enabled
-        if [ "$ENABLE_GAMMA" = true ]; then
-            for MON in "${MONITORS[@]}"; do
-                xrandr --output "$MON" --gamma "$CURRENT_GAMMA" 2>/dev/null &
-            done
-            wait
-            echo "Gamma set to: $CURRENT_GAMMA" >&2
+        if [ "$CURRENT_STATE" = "active" ]; then
+            apply_time_transition
+        else
+            # Idle: smoothly fade just the gamma, brightness stays idle
+            smooth_gamma_transition
         fi
 
-        # Trigger brightness update on next cycle
         return 1
     fi
 
     return 0
 }
 
-# Get idle time with error handling
+# Get idle time (fallback already present)
 get_idle_time() {
     if [ "$ENABLE_IDLE" = false ]; then
         echo "0"
@@ -215,7 +271,6 @@ get_idle_time() {
     local idle_ms=0
     local max_attempts=3
 
-    # Try multiple times
     for attempt in $(seq 1 $max_attempts); do
         idle_ms=$(xprintidle 2>/dev/null)
 
@@ -223,12 +278,10 @@ get_idle_time() {
             idle_seconds=$((idle_ms / 1000))
 
             # CRITICAL: Check if system just woke from sleep.
-            # If idle time is more than 5 minutes, but system just woke, reset to 0.
             if [ "$idle_seconds" -ge 300 ] && [ -f "/sys/power/resume_time" ]; then
                 RESUME_TIME=$(cat "/sys/power/resume_time" 2>/dev/null || echo "0")
                 if [ -n "$RESUME_TIME" ] && [ "$RESUME_TIME" != "0" ]; then
                     current_time=$(date +%s)
-                    # If we woke within the last 30 seconds, ignore huge idle time
                     if [ $((current_time - RESUME_TIME)) -lt 30 ]; then
                         echo "0"
                         return 0
@@ -255,7 +308,7 @@ get_mouse_position() {
     eval "$mouse_output" 2>/dev/null
 }
 
-# Parallel xrandr updates for performance (with gamma support)
+# Parallel xrandr updates for mouse/idle modes (no gamma interpolation)
 parallel_xrandr_brightness() {
     local brightness_args=()
     while [ $# -ge 2 ]; do
@@ -283,31 +336,38 @@ parallel_xrandr_brightness() {
     wait "${pids[@]}" 2>/dev/null
 }
 
-# Apply gamma to all monitors
+# Apply gamma (instant) – now only used in initial setup / geometry changes
 apply_gamma() {
-    if [ "$ENABLE_GAMMA" = true ]; then
-        local pids=()
-        for MON in "${MONITORS[@]}"; do
-            xrandr --output "$MON" --gamma "$CURRENT_GAMMA" 2>/dev/null &
-            pids+=($!)
-        done
-        wait "${pids[@]}" 2>/dev/null
+    if [ "$ENABLE_GAMMA" != true ]; then
+        return
     fi
+
+    if [ "$CURRENT_GAMMA" = "$LAST_APPLIED_GAMMA" ]; then
+        return
+    fi
+
+    local pids=()
+    for MON in "${MONITORS[@]}"; do
+        xrandr --output "$MON" --gamma "$CURRENT_GAMMA" 2>/dev/null &
+        pids+=($!)
+    done
+    wait "${pids[@]}" 2>/dev/null
+
+    LAST_APPLIED_GAMMA="$CURRENT_GAMMA"
+    echo "Gamma set to: $CURRENT_GAMMA" >&2
 }
 
-# Apply minimum brightness constraint (except for idle and dimmed monitors)
+# Apply minimum brightness (unchanged)
 apply_minimum_brightness() {
     local target_brightness="$1"
-    local current_state="$2"  # "active" or "idle"
-    local is_dimmed="$3"      # "true" or "false" - whether this monitor is dimmed
+    local current_state="$2"
+    local is_dimmed="$3"
 
-    # Don't apply minimum to idle state or dimmed monitors
     if [ "$current_state" = "idle" ] || [ "$is_dimmed" = "true" ]; then
         echo "$target_brightness"
         return 0
     fi
 
-    # Apply minimum to active (non-dimmed) states only
     if [ "$(echo "$target_brightness < $MIN_BRIGHTNESS" \
         | bc -l 2>/dev/null)" -eq 1 ]; then
         echo "$MIN_BRIGHTNESS"
@@ -316,11 +376,11 @@ apply_minimum_brightness() {
     fi
 }
 
-# Smooth transition function
+# Smooth transition function (time mode interpolates gamma, idle gamma fade separate)
 smooth_transition() {
-    local mode="$1"  # "mouse" or "idle"
-    local steps interval instant
+    local mode="$1"  # "mouse", "idle", or "time"
 
+    local steps interval instant
     case "$mode" in
         "mouse")
             steps="$SMOOTH_DIM_MOUSE_STEPS"
@@ -332,26 +392,51 @@ smooth_transition() {
             interval="$SMOOTH_DIM_IDLE_INTERVAL"
             instant="$INSTANT_IDLE_DIM"
             ;;
+        "time")
+            steps="$SMOOTH_DIM_TIME_STEPS"
+            interval="$SMOOTH_DIM_TIME_INTERVAL"
+            instant="$INSTANT_TIME_DIM"
+            ;;
         *)
             return 1
             ;;
     esac
 
-    # Instant mode
+    # --- Acquire transition lock ---
+    exec 10>"$TRANSITION_LOCKFILE" 2>/dev/null || return 1
+    if ! flock -n 10; then
+        exec 10>&-
+        return 0
+    fi
+
+    # For time mode, prepare gamma interpolation
+    if [ "$mode" = "time" ] && [ "$ENABLE_GAMMA" = true ]; then
+        IFS=':' read -r -a start_g <<< "$START_GAMMA"
+        IFS=':' read -r -a target_g <<< "$TARGET_GAMMA"
+
+        gamma_step_r=$(echo "scale=6; (${target_g[0]} - ${start_g[0]}) / $steps" | bc 2>/dev/null || echo 0)
+        gamma_step_g=$(echo "scale=6; (${target_g[1]} - ${start_g[1]}) / $steps" | bc 2>/dev/null || echo 0)
+        gamma_step_b=$(echo "scale=6; (${target_g[2]} - ${start_g[2]}) / $steps" | bc 2>/dev/null || echo 0)
+    fi
+
+    # Instant mode shortcut
     if [ "$instant" = true ]; then
         local brightness_args=()
         for MON in "${MONITORS[@]}"; do
             MON_CURRENT_BRIGHT["$MON"]="${MON_TARGET_BRIGHT[$MON]}"
             brightness_args+=("$MON" "${MON_TARGET_BRIGHT[$MON]}")
         done
-        parallel_xrandr_brightness "${brightness_args[@]}"
+        if [ "$mode" = "time" ] && [ "$ENABLE_GAMMA" = true ]; then
+            parallel_xrandr_brightness "${brightness_args[@]}"
+            apply_gamma
+        else
+            parallel_xrandr_brightness "${brightness_args[@]}"
+        fi
+        exec 10>&-
         return 0
     fi
 
     # Smooth transition
-    TRANSITION_IN_PROGRESS=true
-
-    # Calculate start values and step sizes for each monitor
     START_BRIGHTNESS=()
     STEP_SIZES=()
 
@@ -363,9 +448,18 @@ smooth_transition() {
         STEP_SIZES["$MON"]="$step_size"
     done
 
-    # Perform smooth transition
     for ((step=1; step<=steps; step++)); do
         local brightness_args=()
+
+        # Compute interpolated gamma for this step (only for time mode with gamma)
+        local current_gamma=""
+        if [ "$mode" = "time" ] && [ "$ENABLE_GAMMA" = true ]; then
+            local r g b
+            r=$(echo "scale=6; ${start_g[0]} + ${gamma_step_r} * $step" | bc 2>/dev/null || echo "${target_g[0]}")
+            g=$(echo "scale=6; ${start_g[1]} + ${gamma_step_g} * $step" | bc 2>/dev/null || echo "${target_g[1]}")
+            b=$(echo "scale=6; ${start_g[2]} + ${gamma_step_b} * $step" | bc 2>/dev/null || echo "${target_g[2]}")
+            current_gamma="${r}:${g}:${b}"
+        fi
 
         for MON in "${MONITORS[@]}"; do
             local current
@@ -377,25 +471,20 @@ smooth_transition() {
                     echo "${MON_TARGET_BRIGHT[$MON]}")
             fi
 
-            # Clamp between appropriate limits based on mode
+            # Clamp according to mode
             if [ "$mode" = "idle" ]; then
-                # For idle: only clamp to 0-1 (no minimum)
                 if [ "$(echo "$current < 0" | bc -l 2>/dev/null)" -eq 1 ]; then
                     current=0
                 elif [ "$(echo "$current > 1" | bc -l 2>/dev/null)" -eq 1 ]; then
                     current=1
                 fi
             else
-                # For mouse/active: only apply minimum to active monitors
-                # Dimmed monitors can go to 0.
-                # Determine if this monitor should be dimmed.
                 local is_dimmed=false
                 if [ -f "$TOGGLE_FILE" ] && [ "$MON" != "$LAST_ACTIVE_MON" ] \
                     && [ -n "$LAST_ACTIVE_MON" ]; then
                     is_dimmed=true
                 fi
 
-                # Only apply minimum if NOT dimmed
                 if [ "$is_dimmed" = "false" ] \
                     && [ "$(echo "$current < $MIN_BRIGHTNESS" \
                         | bc -l 2>/dev/null)" -eq 1 ]; then
@@ -406,45 +495,57 @@ smooth_transition() {
             fi
 
             MON_CURRENT_BRIGHT["$MON"]="$current"
-            brightness_args+=("$MON" "$current")
+
+            if [ "$mode" = "time" ] && [ "$ENABLE_GAMMA" = true ]; then
+                xrandr --output "$MON" --brightness "$current" --gamma "$current_gamma" 2>/dev/null &
+            else
+                brightness_args+=("$MON" "$current")
+            fi
         done
 
-        parallel_xrandr_brightness "${brightness_args[@]}"
+        if [ "$mode" != "time" ] || [ "$ENABLE_GAMMA" != true ]; then
+            parallel_xrandr_brightness "${brightness_args[@]}"
+        else
+            wait
+        fi
+
         sleep "$interval"
     done
 
-    # Ensure final exact targets
+    # Final exact values
     for MON in "${MONITORS[@]}"; do
         MON_CURRENT_BRIGHT["$MON"]="${MON_TARGET_BRIGHT[$MON]}"
     done
 
-    local final_brightness_args=()
-    for MON in "${MONITORS[@]}"; do
-        final_brightness_args+=("$MON" "${MON_TARGET_BRIGHT[$MON]}")
-    done
-    parallel_xrandr_brightness "${final_brightness_args[@]}"
+    if [ "$mode" = "time" ] && [ "$ENABLE_GAMMA" = true ]; then
+        # Apply final gamma precisely
+        for MON in "${MONITORS[@]}"; do
+            xrandr --output "$MON" --brightness "${MON_TARGET_BRIGHT[$MON]}" \
+                --gamma "$TARGET_GAMMA" 2>/dev/null &
+        done
+        wait
+        LAST_APPLIED_GAMMA="$TARGET_GAMMA"
+    else
+        local final_brightness_args=()
+        for MON in "${MONITORS[@]}"; do
+            final_brightness_args+=("$MON" "${MON_TARGET_BRIGHT[$MON]}")
+        done
+        parallel_xrandr_brightness "${final_brightness_args[@]}"
+    fi
 
-    TRANSITION_IN_PROGRESS=false
+    exec 10>&-
 }
 
-# Apply idle brightness
+# Apply idle brightness (unchanged)
 apply_idle_brightness() {
-    # Set target brightness for idle state (all monitors same)
     for MON in "${MONITORS[@]}"; do
-        # IDLE_BRIGHTNESS is exempt from minimum constraint
         MON_TARGET_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
     done
-
-    # Apply smooth transition
-    if [ "$TRANSITION_IN_PROGRESS" = false ]; then
-        smooth_transition "idle"
-    fi
+    smooth_transition "idle"
 }
 
-# Apply active (mouse-based) brightness
+# Apply active (mouse‑based) brightness (unchanged)
 apply_active_brightness() {
-    # FAST PATH: If mouse dimming is disabled (toggle file missing),
-    # set all monitors to active brightness and return immediately.
     if [ ! -f "$TOGGLE_FILE" ]; then
         local brightness_args=()
         for MON in "${MONITORS[@]}"; do
@@ -453,15 +554,12 @@ apply_active_brightness() {
             brightness_args+=("$MON" "$CURRENT_ACTIVE_BRIGHTNESS")
         done
         parallel_xrandr_brightness "${brightness_args[@]}"
-        LAST_ACTIVE_MON=""          # reset active monitor
-        TRANSITION_IN_PROGRESS=false
+        LAST_ACTIVE_MON=""
         return 0
     fi
 
-    # -------- NORMAL PATH (toggle ON) --------
     get_mouse_position
 
-    # Find active monitor
     local active_mon=""
     for MON in "${MONITORS[@]}"; do
         if [ "$X" -ge "${MON_X1[$MON]}" ] && [ "$X" -lt "${MON_X2[$MON]}" ] \
@@ -471,12 +569,10 @@ apply_active_brightness() {
         fi
     done
 
-    # If no active monitor found, default to first monitor
     if [ -z "$active_mon" ] && [ ${#MONITORS[@]} -gt 0 ]; then
         active_mon="${MONITORS[0]}"
     fi
 
-    # Toggle state is ON (file exists) – proceed with per-monitor dimming
     local needs_update=false
     for MON in "${MONITORS[@]}"; do
         local is_dimmed=false
@@ -490,10 +586,8 @@ apply_active_brightness() {
             is_dimmed=true
         fi
 
-        # Apply minimum brightness constraint (except for idle and dimmed monitors)
         target=$(apply_minimum_brightness "$target" "active" "$is_dimmed")
 
-        # Check if target changed
         local current_target="${MON_TARGET_BRIGHT[$MON]}"
         if [ "$(echo "$current_target != $target" | bc -l 2>/dev/null)" -eq 1 ]; then
             MON_TARGET_BRIGHT["$MON"]="$target"
@@ -501,19 +595,48 @@ apply_active_brightness() {
         fi
     done
 
-    # Apply transition if needed
-    if [ "$needs_update" = true ] && [ "$TRANSITION_IN_PROGRESS" = false ]; then
+    if [ "$needs_update" = true ]; then
         smooth_transition "mouse"
     fi
 
     LAST_ACTIVE_MON="$active_mon"
 }
 
+# Time‑based transition – now passes gamma start/target to smooth_transition
+apply_time_transition() {
+    if [ ! -f "$TOGGLE_FILE" ]; then
+        for MON in "${MONITORS[@]}"; do
+            MON_TARGET_BRIGHT["$MON"]="$CURRENT_ACTIVE_BRIGHTNESS"
+        done
+    else
+        local active_mon="$LAST_ACTIVE_MON"
+        if [ -z "$active_mon" ] && [ ${#MONITORS[@]} -gt 0 ]; then
+            active_mon="${MONITORS[0]}"
+        fi
+        for MON in "${MONITORS[@]}"; do
+            local target is_dimmed=false
+            if [ "$MON" = "$active_mon" ]; then
+                target="$CURRENT_ACTIVE_BRIGHTNESS"
+            else
+                target="$CURRENT_DIM_BRIGHTNESS"
+                is_dimmed=true
+            fi
+            target=$(apply_minimum_brightness "$target" "active" "$is_dimmed")
+            MON_TARGET_BRIGHT["$MON"]="$target"
+        done
+    fi
+
+    # Gamma: start from last applied, target is CURRENT_GAMMA
+    START_GAMMA="${LAST_APPLIED_GAMMA:-$CURRENT_GAMMA}"
+    TARGET_GAMMA="$CURRENT_GAMMA"
+
+    smooth_transition "time"
+}
+
 # -----------------------------
 # INITIALIZATION
 # -----------------------------
 
-# Check for required commands
 for cmd in xrandr xdotool bc; do
     if ! command -v "$cmd" &> /dev/null; then
         echo "Error: $cmd is required but not installed" >&2
@@ -526,14 +649,12 @@ if [ "$ENABLE_IDLE" = true ] && ! command -v xprintidle &> /dev/null; then
     ENABLE_IDLE=false
 fi
 
-# Initialize monitor data
 XRANDR_LIST=$(xrandr --listmonitors 2>/dev/null)
 if [ $? -ne 0 ] || [ -z "$XRANDR_LIST" ]; then
     echo "Error: Failed to get monitor list from xrandr" >&2
     exit 1
 fi
 
-# Set initial time state
 if is_night; then
     CURRENT_TIME_STATE="night"
     CURRENT_ACTIVE_BRIGHTNESS="$NIGHT_ACTIVE_BRIGHTNESS"
@@ -549,10 +670,20 @@ fi
 read_monitors
 GEOM_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
 
-# Apply initial gamma
+# Apply initial gamma (forces setting LAST_APPLIED_GAMMA)
 apply_gamma
 
-# Calculate effective timeout for display (0 becomes 1)
+# Force initial brightness and gamma (fix for single/multi monitor startup)
+for MON in "${MONITORS[@]}"; do
+    if [ "$ENABLE_GAMMA" = true ]; then
+        xrandr --output "$MON" --brightness "${MON_TARGET_BRIGHT[$MON]}" \
+               --gamma "$CURRENT_GAMMA" 2>/dev/null &
+    else
+        xrandr --output "$MON" --brightness "${MON_TARGET_BRIGHT[$MON]}" 2>/dev/null &
+    fi
+done
+wait
+
 EFFECTIVE_TIMEOUT="$IDLE_TIMEOUT"
 if [ "$IDLE_TIMEOUT" -eq 0 ]; then
     EFFECTIVE_TIMEOUT=1
@@ -592,6 +723,9 @@ echo "Mouse instant: $INSTANT_MOUSE_DIM" >&2
 echo "Idle transition: ${SMOOTH_DIM_IDLE_STEPS} steps, \
 ${SMOOTH_DIM_IDLE_INTERVAL}s interval" >&2
 echo "Idle instant: $INSTANT_IDLE_DIM" >&2
+echo "Time transition: ${SMOOTH_DIM_TIME_STEPS} steps, \
+${SMOOTH_DIM_TIME_INTERVAL}s interval" >&2
+echo "Time instant: $INSTANT_TIME_DIM" >&2
 echo "" >&2
 echo "Toggle file: $TOGGLE_FILE" >&2
 echo -n "Mouse toggle state: " >&2
@@ -612,18 +746,13 @@ echo "" >&2
 while true; do
     NOW=$(date +%s)
 
-    # -------- Time state check --------
     if (( NOW - LAST_TIME_CHECK >= TIME_CHECK_INTERVAL )); then
         LAST_TIME_CHECK=$NOW
-
-        # Update time state - if it changed, we need to update brightness
         if ! update_time_state; then
-            # Time state changed, force brightness update on next cycle
             echo "Time state changed to $CURRENT_TIME_STATE" >&2
         fi
     fi
 
-    # -------- Geometry check --------
     if (( NOW - LAST_GEOM_CHECK >= GEOM_INTERVAL )); then
         LAST_GEOM_CHECK=$NOW
         XRANDR_LIST=$(xrandr --listmonitors 2>/dev/null)
@@ -633,9 +762,7 @@ while true; do
                 GEOM_HASH="$NEW_HASH"
                 GEOM_DIRTY=1
                 read_monitors
-                # Reapply gamma after geometry change
                 apply_gamma
-                # Re‑apply correct brightness state for new monitor layout
                 case "$CURRENT_STATE" in
                     "active")
                         apply_active_brightness
@@ -649,28 +776,22 @@ while true; do
         fi
     fi
 
-    # Skip brightness work while geometry just changed
     if [ "$GEOM_DIRTY" -eq 1 ]; then
         GEOM_DIRTY=0
         continue
     fi
 
-    # -------- Idle check --------
     if (( NOW - LAST_IDLE_CHECK >= IDLE_CHECK_INTERVAL )); then
         LAST_IDLE_CHECK=$NOW
 
-        # Only perform idle checks if idle dimming is globally enabled
-        # AND the runtime toggle file does NOT exist (i.e., idle dimming is ON)
         if [ "$ENABLE_IDLE" = true ] && [ ! -f "$IDLE_TOGGLE_FILE" ]; then
             idle_time=$(get_idle_time)
 
-            # Calculate effective timeout (0 becomes 1) with proper integer handling
             effective_timeout="$IDLE_TIMEOUT"
             if [ -z "$effective_timeout" ] || [ "${effective_timeout:-0}" -eq 0 ]; then
                 effective_timeout=1
             fi
 
-            # State transitions
             case "$CURRENT_STATE" in
                 "active")
                     if [ -n "$idle_time" ] && [ "$idle_time" -ge "$effective_timeout" ]; then
@@ -688,14 +809,10 @@ while true; do
                     ;;
             esac
         else
-            # Idle dimming is disabled (either ENABLE_IDLE=false OR toggle file exists)
-            # Force active state and skip all idle logic
             CURRENT_STATE="active"
-            TRANSITION_IN_PROGRESS=false
         fi
     fi
 
-    # -------- Apply brightness based on state --------
     case "$CURRENT_STATE" in
         "active")
             apply_active_brightness
