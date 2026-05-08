@@ -163,7 +163,7 @@ ENABLE_IDLE, INSTANT_MOUSE_DIM, and INSTANT_IDLE_DIM can also be toggled on and 
 
 Open Start up applications> click + then custom command>browse and select the script you downloaded
 
-Do the same for xbindkeys (click + then custom command and search for .xbindkeys)
+Do the same for xbindkeys (click + then custom command and search for bindkeys)
 
 
 
