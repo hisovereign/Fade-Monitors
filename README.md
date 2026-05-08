@@ -11,6 +11,7 @@ This does not aim to replace password protected screen saver but to act as a qua
 	
 -Mouse-based dimming  and idle dim can be toggled on/off with a hotkey.
 
+**No terminal install instructions:** https://youtu.be/21lYYaiAEU8
 
 **For .deb release installation and config change instructions see bottom of readme**
 
