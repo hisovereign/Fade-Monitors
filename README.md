@@ -77,12 +77,15 @@ Preferred hotkey method (we are using bindkeys):
 		nano ~/.xbindkeysrc
 
 3.Add this block (copy/paste)
+```
+# Toggle mouse-based monitor dimming
+"~/.local/bin/fade-monitors-enhanced-dimming.sh toggle-mouse"
+        F10
 
-	"if [ -f ~/.fade_mouse_enabled ]; then rm ~/.fade_mouse_enabled; else touch ~/.fade_mouse_enabled; fi"
-   	F10
-
-	"if [ -f ~/.idle_dim_enabled ]; then rm ~/.idle_dim_enabled; else touch ~/.idle>
-		F9
+# Toggle idle dimming
+"~/.local/bin/fade-monitors-enhanced-dimming.sh toggle-idle"
+        F9
+```
 
 4. Save and exit
 	crtl + o, enter. crtl + x
