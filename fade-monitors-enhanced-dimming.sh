@@ -56,6 +56,38 @@ GEOM_INTERVAL=2              # Monitor geometry check interval
 TIME_CHECK_INTERVAL=30       # Time state check interval (every 30 seconds)
 
 # -----------------------------
+# COMMAND PARSER
+# -----------------------------
+if [[ $# -gt 0 ]]; then
+    case "$1" in
+        toggle-mouse)
+            if [ -f "$TOGGLE_FILE" ]; then
+                rm "$TOGGLE_FILE"
+                echo "Mouse dimming OFF"
+            else
+                touch "$TOGGLE_FILE"
+                echo "Mouse dimming ON"
+            fi
+            exit 0
+            ;;
+        toggle-idle)
+            if [ -f "$IDLE_TOGGLE_FILE" ]; then
+                rm "$IDLE_TOGGLE_FILE"
+                echo "Idle dimming OFF"
+            else
+                touch "$IDLE_TOGGLE_FILE"
+                echo "Idle dimming ON"
+            fi
+            exit 0
+            ;;
+        *)
+            echo "Usage: $0 [toggle-mouse|toggle-idle]"
+            exit 1
+            ;;
+    esac
+fi
+
+# -----------------------------
 # SINGLE-INSTANCE LOCK
 # -----------------------------
 LOCKFILE="$HOME/.fade_mouse.lock"
