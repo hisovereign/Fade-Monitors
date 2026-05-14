@@ -1,15 +1,123 @@
 #!/bin/bash
 # -----------------------------
 # Enhanced Mouse-Based Multi-Monitor Dimming with Idle, Day/Night Modes, and Gamma Control
-# (version with time-transition, per‑transition lock, smooth gamma, and idle gamma fade)
+# (version 1.1.0 with config file, live reload, CLI commands)
 # -----------------------------
 # Requires: xrandr, xdotool, xprintidle, bc
 # -----------------------------
 
-# -----------------------------
-# USER CONFIG
-# -----------------------------
+# ============================================================
+# CONFIG / STATE FILES
+# ============================================================
+CONFIG_DIR="${HOME}/.config/fade-monitors"
+CONFIG_FILE="${CONFIG_DIR}/config"
+RELOAD_FLAG="${HOME}/.fade_mouse.reload"
+STATUS_REQUEST="${HOME}/.fade_mouse.status-request"
+STATUS_FILE="${HOME}/.fade_mouse.status"
 
+# ============================================================
+# DEFAULT VALUES (used when config key is missing)
+# ============================================================
+set_defaults() {
+    # Day/Night brightness levels
+    DEFAULT_DAY_ACTIVE_BRIGHTNESS=0.7
+    DEFAULT_DAY_DIM_BRIGHTNESS=0.3
+    DEFAULT_NIGHT_ACTIVE_BRIGHTNESS=0.4
+    DEFAULT_NIGHT_DIM_BRIGHTNESS=0.1
+    DEFAULT_IDLE_BRIGHTNESS=0.1
+
+    # Time window (24h, HHMM format)
+    DEFAULT_NIGHT_START=1700
+    DEFAULT_DAY_START=0730
+
+    # Gamma control
+    DEFAULT_ENABLE_GAMMA=false
+    DEFAULT_DAY_GAMMA="1.0:1.0:1.0"
+    DEFAULT_NIGHT_GAMMA="1.0:0.85:0.1"
+
+    # Idle settings
+    DEFAULT_IDLE_TIMEOUT=90
+    DEFAULT_ENABLE_IDLE=true
+
+    # Smooth transition settings - MOUSE
+    DEFAULT_SMOOTH_DIM_MOUSE_STEPS=10
+    DEFAULT_SMOOTH_DIM_MOUSE_INTERVAL=0.01
+    DEFAULT_INSTANT_MOUSE_DIM=true
+
+    # Smooth transition settings - IDLE
+    DEFAULT_SMOOTH_DIM_IDLE_STEPS=10
+    DEFAULT_SMOOTH_DIM_IDLE_INTERVAL=0.01
+    DEFAULT_INSTANT_IDLE_DIM=false
+
+    # Smooth transition settings - TIME
+    DEFAULT_SMOOTH_DIM_TIME_STEPS=20
+    DEFAULT_SMOOTH_DIM_TIME_INTERVAL=0.05
+    DEFAULT_INSTANT_TIME_DIM=false
+
+    # Poll intervals
+    DEFAULT_MOUSE_INTERVAL=1.0
+    DEFAULT_IDLE_CHECK_INTERVAL=1
+    DEFAULT_GEOM_INTERVAL=2
+    DEFAULT_TIME_CHECK_INTERVAL=30
+
+    # Toggle files
+    TOGGLE_FILE="${HOME}/.fade_mouse_enabled"
+    IDLE_TOGGLE_FILE="${HOME}/.idle_dim_enabled"
+
+    # Hidden safety minimum
+    MIN_BRIGHTNESS=0.1
+}
+
+# ============================================================
+# VALIDATION FUNCTIONS
+# ============================================================
+validate_brightness() {
+    local val="$1"
+    [[ "$val" =~ ^[0-9]*\.?[0-9]+$ ]] || return 1
+    local cmp
+    cmp=$(echo "$val >= 0 && $val <= 1" | bc -l 2>/dev/null)
+    [ "$cmp" = "1" ] || return 1
+}
+
+validate_gamma() {
+    local val="$1"
+    [[ "$val" =~ ^[0-9]+(\.[0-9]+)?:[0-9]+(\.[0-9]+)?:[0-9]+(\.[0-9]+)?$ ]] || return 1
+    local r g b
+    IFS=':' read -r r g b <<< "$val"
+    for v in "$r" "$g" "$b"; do
+        local cmp
+        cmp=$(echo "$v >= 0" | bc -l 2>/dev/null)
+        [ "$cmp" = "1" ] || return 1
+    done
+}
+
+validate_time() {
+    local val="$1"
+    [[ "$val" =~ ^[0-9]{4}$ ]] || return 1
+    [ "$val" -ge 0 ] && [ "$val" -le 2359 ] || return 1
+}
+
+validate_integer() {
+    local val="$1" min="$2" max="$3"
+    [[ "$val" =~ ^[0-9]+$ ]] || return 1
+    [ "$val" -ge "$min" ] && [ "$val" -le "$max" ] || return 1
+}
+
+validate_boolean() {
+    [[ "$1" == "true" || "$1" == "false" ]] || return 1
+}
+
+validate_float() {
+    local val="$1"
+    [[ "$val" =~ ^[0-9]+(\.[0-9]+)?$ ]] || return 1
+}
+
+# ============================================================
+# CONFIG FILE MANAGEMENT
+# ============================================================
+create_default_config() {
+    mkdir -p "$CONFIG_DIR"
+    cat > "$CONFIG_FILE" << 'CONFEOF'
 # Day/Night brightness levels
 DAY_ACTIVE_BRIGHTNESS=0.7
 DAY_DIM_BRIGHTNESS=0.3
@@ -18,47 +126,120 @@ NIGHT_DIM_BRIGHTNESS=0.1
 IDLE_BRIGHTNESS=0.1
 
 # Time window (24h, HHMM format)
-NIGHT_START=1700   # 17:00 PM
-DAY_START=0730     # 07:30 AM
+NIGHT_START=1700
+DAY_START=0730
 
-# Gamma control (optional)
+# Gamma control (true/false)
 ENABLE_GAMMA=false
-DAY_GAMMA="1.0:1.0:1.0"
-NIGHT_GAMMA="1.0:0.85:0.1"
+DAY_GAMMA=1.0:1.0:1.0
+NIGHT_GAMMA=1.0:0.85:0.1
 
 # Idle settings
-IDLE_TIMEOUT=90              # Seconds of inactivity before idle dim
-ENABLE_IDLE=false             # Set to false to disable idle dimming entirely
+IDLE_TIMEOUT=90
+ENABLE_IDLE=true
 
 # Smooth transition settings - MOUSE DIM
-SMOOTH_DIM_MOUSE_STEPS=10        # Steps for mouse-based dimming transitions
-SMOOTH_DIM_MOUSE_INTERVAL=0.01   # Seconds between steps for mouse dimming
-INSTANT_MOUSE_DIM=true          # Override smooth dimming with instant for mouse
+SMOOTH_DIM_MOUSE_STEPS=10
+SMOOTH_DIM_MOUSE_INTERVAL=0.01
+INSTANT_MOUSE_DIM=true
 
 # Smooth transition settings - IDLE DIM
-SMOOTH_DIM_IDLE_STEPS=10         # Steps for idle dimming transitions
-SMOOTH_DIM_IDLE_INTERVAL=0.01    # Seconds between steps for idle dimming
-INSTANT_IDLE_DIM=false           # Override smooth dimming with instant for idle
+SMOOTH_DIM_IDLE_STEPS=10
+SMOOTH_DIM_IDLE_INTERVAL=0.01
+INSTANT_IDLE_DIM=false
 
 # Smooth transition settings - TIME (day/night) DIM
-SMOOTH_DIM_TIME_STEPS=20         # Steps for day/night transitions
-SMOOTH_DIM_TIME_INTERVAL=0.05    # Seconds between steps for time-based dimming
-INSTANT_TIME_DIM=false           # Override smooth dimming with instant for time
+SMOOTH_DIM_TIME_STEPS=20
+SMOOTH_DIM_TIME_INTERVAL=0.05
+INSTANT_TIME_DIM=false
 
-# Toggle files
-TOGGLE_FILE="$HOME/.fade_mouse_enabled"
-IDLE_TOGGLE_FILE="$HOME/.idle_dim_enabled"
+# Poll intervals (seconds)
+MOUSE_INTERVAL=1.0
+IDLE_CHECK_INTERVAL=1
+GEOM_INTERVAL=2
+TIME_CHECK_INTERVAL=30
+CONFEOF
+}
 
-# Poll intervals
-MOUSE_INTERVAL=1.0           # Mouse polling
-IDLE_CHECK_INTERVAL=1        # Idle check interval (every 1 second)
-GEOM_INTERVAL=2              # Monitor geometry check interval
-TIME_CHECK_INTERVAL=30       # Time state check interval (every 30 seconds)
+load_config() {
+    # Create config if missing
+    if [ ! -f "$CONFIG_FILE" ]; then
+        create_default_config
+    fi
 
-# -----------------------------
-# COMMAND PARSER
-# -----------------------------
+    # Start from defaults, then override with config file
+    set_defaults
+    DAY_ACTIVE_BRIGHTNESS="$DEFAULT_DAY_ACTIVE_BRIGHTNESS"
+    DAY_DIM_BRIGHTNESS="$DEFAULT_DAY_DIM_BRIGHTNESS"
+    NIGHT_ACTIVE_BRIGHTNESS="$DEFAULT_NIGHT_ACTIVE_BRIGHTNESS"
+    NIGHT_DIM_BRIGHTNESS="$DEFAULT_NIGHT_DIM_BRIGHTNESS"
+    IDLE_BRIGHTNESS="$DEFAULT_IDLE_BRIGHTNESS"
+    NIGHT_START="$DEFAULT_NIGHT_START"
+    DAY_START="$DEFAULT_DAY_START"
+    ENABLE_GAMMA="$DEFAULT_ENABLE_GAMMA"
+    DAY_GAMMA="$DEFAULT_DAY_GAMMA"
+    NIGHT_GAMMA="$DEFAULT_NIGHT_GAMMA"
+    IDLE_TIMEOUT="$DEFAULT_IDLE_TIMEOUT"
+    ENABLE_IDLE="$DEFAULT_ENABLE_IDLE"
+    SMOOTH_DIM_MOUSE_STEPS="$DEFAULT_SMOOTH_DIM_MOUSE_STEPS"
+    SMOOTH_DIM_MOUSE_INTERVAL="$DEFAULT_SMOOTH_DIM_MOUSE_INTERVAL"
+    INSTANT_MOUSE_DIM="$DEFAULT_INSTANT_MOUSE_DIM"
+    SMOOTH_DIM_IDLE_STEPS="$DEFAULT_SMOOTH_DIM_IDLE_STEPS"
+    SMOOTH_DIM_IDLE_INTERVAL="$DEFAULT_SMOOTH_DIM_IDLE_INTERVAL"
+    INSTANT_IDLE_DIM="$DEFAULT_INSTANT_IDLE_DIM"
+    SMOOTH_DIM_TIME_STEPS="$DEFAULT_SMOOTH_DIM_TIME_STEPS"
+    SMOOTH_DIM_TIME_INTERVAL="$DEFAULT_SMOOTH_DIM_TIME_INTERVAL"
+    INSTANT_TIME_DIM="$DEFAULT_INSTANT_TIME_DIM"
+    MOUSE_INTERVAL="$DEFAULT_MOUSE_INTERVAL"
+    IDLE_CHECK_INTERVAL="$DEFAULT_IDLE_CHECK_INTERVAL"
+    GEOM_INTERVAL="$DEFAULT_GEOM_INTERVAL"
+    TIME_CHECK_INTERVAL="$DEFAULT_TIME_CHECK_INTERVAL"
+
+    # Read config file, overriding defaults
+    while IFS='=' read -r key value; do
+        # skip comments and blanks
+        [[ "$key" =~ ^#.*$ ]] && continue
+        [[ -z "$key" ]] && continue
+        # trim whitespace (simple)
+        key="${key// /}"
+        value="${value// /}"
+        case "$key" in
+            DAY_ACTIVE_BRIGHTNESS) DAY_ACTIVE_BRIGHTNESS="$value" ;;
+            DAY_DIM_BRIGHTNESS) DAY_DIM_BRIGHTNESS="$value" ;;
+            NIGHT_ACTIVE_BRIGHTNESS) NIGHT_ACTIVE_BRIGHTNESS="$value" ;;
+            NIGHT_DIM_BRIGHTNESS) NIGHT_DIM_BRIGHTNESS="$value" ;;
+            IDLE_BRIGHTNESS) IDLE_BRIGHTNESS="$value" ;;
+            NIGHT_START) NIGHT_START="$value" ;;
+            DAY_START) DAY_START="$value" ;;
+            ENABLE_GAMMA) ENABLE_GAMMA="$value" ;;
+            DAY_GAMMA) DAY_GAMMA="$value" ;;
+            NIGHT_GAMMA) NIGHT_GAMMA="$value" ;;
+            IDLE_TIMEOUT) IDLE_TIMEOUT="$value" ;;
+            ENABLE_IDLE) ENABLE_IDLE="$value" ;;
+            SMOOTH_DIM_MOUSE_STEPS) SMOOTH_DIM_MOUSE_STEPS="$value" ;;
+            SMOOTH_DIM_MOUSE_INTERVAL) SMOOTH_DIM_MOUSE_INTERVAL="$value" ;;
+            INSTANT_MOUSE_DIM) INSTANT_MOUSE_DIM="$value" ;;
+            SMOOTH_DIM_IDLE_STEPS) SMOOTH_DIM_IDLE_STEPS="$value" ;;
+            SMOOTH_DIM_IDLE_INTERVAL) SMOOTH_DIM_IDLE_INTERVAL="$value" ;;
+            INSTANT_IDLE_DIM) INSTANT_IDLE_DIM="$value" ;;
+            SMOOTH_DIM_TIME_STEPS) SMOOTH_DIM_TIME_STEPS="$value" ;;
+            SMOOTH_DIM_TIME_INTERVAL) SMOOTH_DIM_TIME_INTERVAL="$value" ;;
+            INSTANT_TIME_DIM) INSTANT_TIME_DIM="$value" ;;
+            MOUSE_INTERVAL) MOUSE_INTERVAL="$value" ;;
+            IDLE_CHECK_INTERVAL) IDLE_CHECK_INTERVAL="$value" ;;
+            GEOM_INTERVAL) GEOM_INTERVAL="$value" ;;
+            TIME_CHECK_INTERVAL) TIME_CHECK_INTERVAL="$value" ;;
+        esac
+    done < "$CONFIG_FILE"
+}
+
+# ============================================================
+# CLI COMMANDS (before lock, no daemon needed)
+# ============================================================
 if [[ $# -gt 0 ]]; then
+    # For set/get we might need config, load it
+    load_config
+
     case "$1" in
         toggle-mouse)
             if [ -f "$TOGGLE_FILE" ]; then
@@ -68,34 +249,181 @@ if [[ $# -gt 0 ]]; then
                 touch "$TOGGLE_FILE"
                 echo "Mouse dimming ON"
             fi
+            # Tell daemon to reload (it will notice toggle change)
+            touch "$RELOAD_FLAG" 2>/dev/null
             exit 0
             ;;
         toggle-idle)
             if [ -f "$IDLE_TOGGLE_FILE" ]; then
                 rm "$IDLE_TOGGLE_FILE"
-                echo "Idle dimming OFF"
+                echo "Idle dimming ON"
             else
                 touch "$IDLE_TOGGLE_FILE"
-                echo "Idle dimming ON"
+                echo "Idle dimming OFF"
+            fi
+            touch "$RELOAD_FLAG" 2>/dev/null
+            exit 0
+            ;;
+        set)
+            if [ $# -ne 3 ]; then
+                echo "Usage: $0 set <key> <value>"
+                exit 1
+            fi
+            key="$2"
+            val="$3"
+            # Validate based on key
+            case "$key" in
+                DAY_ACTIVE_BRIGHTNESS|DAY_DIM_BRIGHTNESS|NIGHT_ACTIVE_BRIGHTNESS|NIGHT_DIM_BRIGHTNESS|IDLE_BRIGHTNESS)
+                    validate_brightness "$val" || { echo "Error: $key must be between 0 and 1"; exit 1; }
+                    ;;
+                NIGHT_START|DAY_START)
+                    validate_time "$val" || { echo "Error: $key must be HHMM (0000-2359)"; exit 1; }
+                    ;;
+                ENABLE_GAMMA|INSTANT_MOUSE_DIM|INSTANT_IDLE_DIM|INSTANT_TIME_DIM|ENABLE_IDLE)
+                    validate_boolean "$val" || { echo "Error: $key must be true or false"; exit 1; }
+                    ;;
+                DAY_GAMMA|NIGHT_GAMMA)
+                    validate_gamma "$val" || { echo "Error: $key must be R:G:B with non-negative numbers"; exit 1; }
+                    ;;
+                IDLE_TIMEOUT|SMOOTH_DIM_MOUSE_STEPS|SMOOTH_DIM_IDLE_STEPS|SMOOTH_DIM_TIME_STEPS)
+                    validate_integer "$val" 0 1000 || { echo "Error: $key must be integer 0-1000"; exit 1; }
+                    ;;
+                SMOOTH_DIM_MOUSE_INTERVAL|SMOOTH_DIM_IDLE_INTERVAL|SMOOTH_DIM_TIME_INTERVAL|MOUSE_INTERVAL|IDLE_CHECK_INTERVAL|GEOM_INTERVAL|TIME_CHECK_INTERVAL)
+                    validate_float "$val" || { echo "Error: $key must be a positive number"; exit 1; }
+                    ;;
+                *)
+                    echo "Error: unknown key $key"
+                    exit 1
+                    ;;
+            esac
+            # Update config file (simple replace)
+            if grep -q "^${key}=" "$CONFIG_FILE"; then
+                sed -i "s/^${key}=.*/${key}=${val}/" "$CONFIG_FILE"
+            else
+                echo "${key}=${val}" >> "$CONFIG_FILE"
+            fi
+            echo "$key set to $val"
+            touch "$RELOAD_FLAG" 2>/dev/null
+            exit 0
+            ;;
+        get)
+            if [ $# -ne 2 ]; then
+                echo "Usage: $0 get <key>"
+                exit 1
+            fi
+            key="$2"
+            # Print value from loaded config (which respects defaults)
+            case "$key" in
+                DAY_ACTIVE_BRIGHTNESS) echo "$DAY_ACTIVE_BRIGHTNESS" ;;
+                DAY_DIM_BRIGHTNESS) echo "$DAY_DIM_BRIGHTNESS" ;;
+                NIGHT_ACTIVE_BRIGHTNESS) echo "$NIGHT_ACTIVE_BRIGHTNESS" ;;
+                NIGHT_DIM_BRIGHTNESS) echo "$NIGHT_DIM_BRIGHTNESS" ;;
+                IDLE_BRIGHTNESS) echo "$IDLE_BRIGHTNESS" ;;
+                NIGHT_START) echo "$NIGHT_START" ;;
+                DAY_START) echo "$DAY_START" ;;
+                ENABLE_GAMMA) echo "$ENABLE_GAMMA" ;;
+                DAY_GAMMA) echo "$DAY_GAMMA" ;;
+                NIGHT_GAMMA) echo "$NIGHT_GAMMA" ;;
+                IDLE_TIMEOUT) echo "$IDLE_TIMEOUT" ;;
+                ENABLE_IDLE) echo "$ENABLE_IDLE" ;;
+                SMOOTH_DIM_MOUSE_STEPS) echo "$SMOOTH_DIM_MOUSE_STEPS" ;;
+                SMOOTH_DIM_MOUSE_INTERVAL) echo "$SMOOTH_DIM_MOUSE_INTERVAL" ;;
+                INSTANT_MOUSE_DIM) echo "$INSTANT_MOUSE_DIM" ;;
+                SMOOTH_DIM_IDLE_STEPS) echo "$SMOOTH_DIM_IDLE_STEPS" ;;
+                SMOOTH_DIM_IDLE_INTERVAL) echo "$SMOOTH_DIM_IDLE_INTERVAL" ;;
+                INSTANT_IDLE_DIM) echo "$INSTANT_IDLE_DIM" ;;
+                SMOOTH_DIM_TIME_STEPS) echo "$SMOOTH_DIM_TIME_STEPS" ;;
+                SMOOTH_DIM_TIME_INTERVAL) echo "$SMOOTH_DIM_TIME_INTERVAL" ;;
+                INSTANT_TIME_DIM) echo "$INSTANT_TIME_DIM" ;;
+                MOUSE_INTERVAL) echo "$MOUSE_INTERVAL" ;;
+                IDLE_CHECK_INTERVAL) echo "$IDLE_CHECK_INTERVAL" ;;
+                GEOM_INTERVAL) echo "$GEOM_INTERVAL" ;;
+                TIME_CHECK_INTERVAL) echo "$TIME_CHECK_INTERVAL" ;;
+                *) echo "Error: unknown key $key"; exit 1 ;;
+            esac
+            exit 0
+            ;;
+        list-settings)
+            # Request status from daemon
+            touch "$STATUS_REQUEST" 2>/dev/null
+            # Wait up to 2 seconds for status file to appear
+            for i in {1..20}; do
+                if [ -f "$STATUS_FILE" ]; then
+                    cat "$STATUS_FILE"
+                    rm -f "$STATUS_FILE"
+                    break
+                fi
+                sleep 0.1
+            done
+            echo ""
+            echo "=== Configuration file ($CONFIG_FILE) ==="
+            if [ -f "$CONFIG_FILE" ]; then
+                cat "$CONFIG_FILE"
+            else
+                echo "(config file missing)"
             fi
             exit 0
             ;;
+        reload)
+            touch "$RELOAD_FLAG" 2>/dev/null
+            echo "Reload signal sent."
+            exit 0
+            ;;
+        help|--help|-h)
+            cat << HELP
+Usage: $0 [command]
+
+Commands:
+  toggle-mouse        Toggle mouse-based dimming on/off
+  toggle-idle         Toggle idle dimming on/off
+  set <key> <value>   Change a configuration value
+  get <key>           Print a configuration value
+  list-settings       Show runtime status and configuration
+  reload              Signal the daemon to reload configuration
+  help                Show this help
+
+Configuration keys (use with set/get):
+  DAY_ACTIVE_BRIGHTNESS, DAY_DIM_BRIGHTNESS, NIGHT_ACTIVE_BRIGHTNESS,
+  NIGHT_DIM_BRIGHTNESS, IDLE_BRIGHTNESS, NIGHT_START, DAY_START,
+  ENABLE_GAMMA, DAY_GAMMA, NIGHT_GAMMA, IDLE_TIMEOUT,
+  SMOOTH_DIM_MOUSE_STEPS, SMOOTH_DIM_MOUSE_INTERVAL, INSTANT_MOUSE_DIM,
+  SMOOTH_DIM_IDLE_STEPS, SMOOTH_DIM_IDLE_INTERVAL, INSTANT_IDLE_DIM,
+  SMOOTH_DIM_TIME_STEPS, SMOOTH_DIM_TIME_INTERVAL, INSTANT_TIME_DIM,
+  MOUSE_INTERVAL, IDLE_CHECK_INTERVAL, GEOM_INTERVAL, TIME_CHECK_INTERVAL
+
+Examples
+  fade-monitors toggle-idle
+  fade-monitors set DAY_ACTIVE_BRIGHTNESS 0.7
+  fade-monitors set NIGHT_START 1800 
+  fade-monitors set ENABLE_GAMMA true
+  fade-monitors set DAY_GAMMA 1.0:1.0:1.0
+  fade-monitors list-settings
+HELP
+            exit 0
+            ;;
         *)
-            echo "Usage: $0 [toggle-mouse|toggle-idle]"
+            echo "Unknown command: $1"
+            echo "Usage: $0 [toggle-mouse|toggle-idle|set|get|list-settings|reload|help]"
             exit 1
             ;;
     esac
 fi
 
+# ============================================================
+# DAEMON MODE (from here onward)
+# ============================================================
+
 # -----------------------------
 # SINGLE-INSTANCE LOCK
 # -----------------------------
-LOCKFILE="$HOME/.fade_mouse.lock"
+LOCKFILE="${HOME}/.fade_mouse.lock"
 exec 9>"$LOCKFILE" || exit 1
 flock -n 9 || exit 0
 
+load_config
+
 # Transition lock file (used internally by smooth_transition and smooth_gamma_transition)
-TRANSITION_LOCKFILE="$HOME/.fade_mouse.transition.lock"
+TRANSITION_LOCKFILE="${HOME}/.fade_mouse.transition.lock"
 
 # -----------------------------
 # Internal state
@@ -108,7 +436,8 @@ GEOM_HASH=""
 LAST_GEOM_CHECK=0
 LAST_IDLE_CHECK=0
 LAST_TIME_CHECK=0
-GEOM_DIRTY=0
+LAST_MONITOR_COUNT=0
+MONITOR_COUNT=0
 
 # State management
 CURRENT_STATE="active"               # "active" or "idle"
@@ -119,14 +448,6 @@ CURRENT_GAMMA="$DAY_GAMMA"
 LAST_APPLIED_GAMMA=""                # tracks last applied gamma
 LAST_ACTIVE_MON=""
 LAST_ACTIVITY_TIME=$(date +%s)
-
-# ============================================
-# HIDDEN SAFETY MINIMUM
-# ============================================
-# Minimum limit for active day and night brightness.
-# This ensures screens never go completely black during active use.
-MIN_BRIGHTNESS=0.1
-# ============================================
 
 # -----------------------------
 # FUNCTIONS
@@ -147,7 +468,7 @@ cleanup() {
 
 trap cleanup EXIT SIGINT SIGTERM
 
-# Read monitor geometry (unchanged)
+# Read monitor geometry
 read_monitors() {
     MONITORS=()
     MON_X1=()
@@ -368,7 +689,7 @@ parallel_xrandr_brightness() {
     wait "${pids[@]}" 2>/dev/null
 }
 
-# Apply gamma (instant) – now only used in initial setup / geometry changes
+# Apply gamma (instant) – now only used in geometry changes and instant time transitions
 apply_gamma() {
     if [ "$ENABLE_GAMMA" != true ]; then
         return
@@ -386,10 +707,9 @@ apply_gamma() {
     wait "${pids[@]}" 2>/dev/null
 
     LAST_APPLIED_GAMMA="$CURRENT_GAMMA"
-    echo "Gamma set to: $CURRENT_GAMMA" >&2
 }
 
-# Apply minimum brightness (unchanged)
+# Apply minimum brightness
 apply_minimum_brightness() {
     local target_brightness="$1"
     local current_state="$2"
@@ -568,7 +888,7 @@ smooth_transition() {
     exec 10>&-
 }
 
-# Apply idle brightness (unchanged)
+# Apply idle brightness
 apply_idle_brightness() {
     for MON in "${MONITORS[@]}"; do
         MON_TARGET_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
@@ -576,7 +896,7 @@ apply_idle_brightness() {
     smooth_transition "idle"
 }
 
-# Apply active (mouse‑based) brightness (unchanged)
+# Apply active (mouse‑based) brightness
 apply_active_brightness() {
     if [ ! -f "$TOGGLE_FILE" ]; then
         local brightness_args=()
@@ -659,15 +979,22 @@ apply_time_transition() {
     fi
 
     # Gamma: start from last applied, target is CURRENT_GAMMA
-    START_GAMMA="${LAST_APPLIED_GAMMA:-$CURRENT_GAMMA}"
-    TARGET_GAMMA="$CURRENT_GAMMA"
+    # Allow overrides for reload (toggle/enable/disable)
+    if [ -n "${RELOAD_START_GAMMA+x}" ] && [ -n "${RELOAD_TARGET_GAMMA+x}" ]; then
+        START_GAMMA="$RELOAD_START_GAMMA"
+        TARGET_GAMMA="$RELOAD_TARGET_GAMMA"
+        unset RELOAD_START_GAMMA RELOAD_TARGET_GAMMA
+    else
+        START_GAMMA="${LAST_APPLIED_GAMMA:-$CURRENT_GAMMA}"
+        TARGET_GAMMA="$CURRENT_GAMMA"
+    fi
 
     smooth_transition "time"
 }
 
-# -----------------------------
+# ============================================================
 # INITIALIZATION
-# -----------------------------
+# ============================================================
 
 for cmd in xrandr xdotool bc; do
     if ! command -v "$cmd" &> /dev/null; then
@@ -702,9 +1029,6 @@ fi
 read_monitors
 GEOM_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
 
-# Apply initial gamma (forces setting LAST_APPLIED_GAMMA)
-apply_gamma
-
 # Force initial brightness and gamma (fix for single/multi monitor startup)
 for MON in "${MONITORS[@]}"; do
     if [ "$ENABLE_GAMMA" = true ]; then
@@ -721,63 +1045,82 @@ if [ "$IDLE_TIMEOUT" -eq 0 ]; then
     EFFECTIVE_TIMEOUT=1
 fi
 
-# Print configuration
-echo "Enhanced Mouse-Based Dimming with Idle & Time-Based Support" >&2
-echo "=========================================================" >&2
-echo "Day settings:" >&2
-echo "  Active brightness: $DAY_ACTIVE_BRIGHTNESS" >&2
-echo "  Dim brightness: $DAY_DIM_BRIGHTNESS" >&2
-echo "  Gamma: $DAY_GAMMA" >&2
-echo "Night settings:" >&2
-echo "  Active brightness: $NIGHT_ACTIVE_BRIGHTNESS" >&2
-echo "  Dim brightness: $NIGHT_DIM_BRIGHTNESS" >&2
-echo "  Gamma: $NIGHT_GAMMA" >&2
-echo "" >&2
-echo "Time windows: Day starts at ${DAY_START:0:2}:${DAY_START:2:2}, \
-Night starts at ${NIGHT_START:0:2}:${NIGHT_START:2:2}" >&2
-echo "Current time state: $CURRENT_TIME_STATE" >&2
-echo "Gamma enabled: $ENABLE_GAMMA" >&2
-echo "" >&2
-echo "Idle brightness: $IDLE_BRIGHTNESS" >&2
-echo "Idle timeout: ${IDLE_TIMEOUT}s (effective: ${EFFECTIVE_TIMEOUT}s)" >&2
-echo "Idle enabled: $ENABLE_IDLE" >&2
-echo "Idle toggle file: $IDLE_TOGGLE_FILE" >&2
-echo -n "Idle toggle state: " >&2
-if [ -f "$IDLE_TOGGLE_FILE" ]; then
-    echo "OFF (file exists = disabled)" >&2
-else
-    echo "ON (no file = enabled)" >&2
-fi
-echo "" >&2
-echo "Mouse transition: ${SMOOTH_DIM_MOUSE_STEPS} steps, \
-${SMOOTH_DIM_MOUSE_INTERVAL}s interval" >&2
-echo "Mouse instant: $INSTANT_MOUSE_DIM" >&2
-echo "Idle transition: ${SMOOTH_DIM_IDLE_STEPS} steps, \
-${SMOOTH_DIM_IDLE_INTERVAL}s interval" >&2
-echo "Idle instant: $INSTANT_IDLE_DIM" >&2
-echo "Time transition: ${SMOOTH_DIM_TIME_STEPS} steps, \
-${SMOOTH_DIM_TIME_INTERVAL}s interval" >&2
-echo "Time instant: $INSTANT_TIME_DIM" >&2
-echo "" >&2
-echo "Toggle file: $TOGGLE_FILE" >&2
-echo -n "Mouse toggle state: " >&2
-if [ -f "$TOGGLE_FILE" ]; then
-    echo "ON (per-monitor dimming)" >&2
-else
-    echo "OFF (all monitors active)" >&2
-fi
-echo "" >&2
-echo "Parallel updates: ENABLED" >&2
-echo "Hidden safety minimum: ${MIN_BRIGHTNESS} (active monitors only)" >&2
-echo "Note: Mouse-aware and idle dim can be set to 0" >&2
-echo "" >&2
+# Print configuration (also on stderr)
+echo "Fade-Monitors is running..." >&2
+echo "Configuration loaded" >&2
 
-# -----------------------------
+# ============================================================
 # MAIN LOOP
-# -----------------------------
+# ============================================================
 while true; do
     NOW=$(date +%s)
 
+    # -------- Reload check --------
+    if [ -f "$RELOAD_FLAG" ]; then
+        rm -f "$RELOAD_FLAG"
+        load_config
+
+        # Re-derive current state variables based on new config
+        if is_night; then
+            CURRENT_TIME_STATE="night"
+            CURRENT_ACTIVE_BRIGHTNESS="$NIGHT_ACTIVE_BRIGHTNESS"
+            CURRENT_DIM_BRIGHTNESS="$NIGHT_DIM_BRIGHTNESS"
+            CURRENT_GAMMA="$NIGHT_GAMMA"
+        else
+            CURRENT_TIME_STATE="day"
+            CURRENT_ACTIVE_BRIGHTNESS="$DAY_ACTIVE_BRIGHTNESS"
+            CURRENT_DIM_BRIGHTNESS="$DAY_DIM_BRIGHTNESS"
+            CURRENT_GAMMA="$DAY_GAMMA"
+        fi
+
+        # Apply changes smoothly (just like a time-state change)
+        if [ "$CURRENT_STATE" = "active" ]; then
+            apply_time_transition
+        else
+            # Idle: re-apply idle brightness; gamma will be handled by smooth_gamma_transition if needed
+            for MON in "${MONITORS[@]}"; do
+                MON_TARGET_BRIGHT["$MON"]="$IDLE_BRIGHTNESS"
+            done
+            if [ "$ENABLE_GAMMA" = true ] && [ "$CURRENT_GAMMA" != "$LAST_APPLIED_GAMMA" ]; then
+                smooth_gamma_transition
+            else
+                smooth_transition "idle"
+            fi
+        fi
+    fi
+
+    # -------- Status request --------
+    if [ -f "$STATUS_REQUEST" ]; then
+        rm -f "$STATUS_REQUEST"
+        # Generate status snapshot
+        {
+            echo "=== Runtime Status ==="
+            echo "Monitors: ${MONITORS[*]}"
+            echo "Current state: $CURRENT_STATE"
+            echo "Time state: $CURRENT_TIME_STATE"
+            echo "Active brightness: $CURRENT_ACTIVE_BRIGHTNESS"
+            echo "Dim brightness: $CURRENT_DIM_BRIGHTNESS"
+            echo "Current gamma: $CURRENT_GAMMA"
+            echo "Idle timeout: ${IDLE_TIMEOUT}s (effective ${EFFECTIVE_TIMEOUT}s)"
+            echo -n "Idle dimming: "
+            if [ "$ENABLE_IDLE" = true ] && [ ! -f "$IDLE_TOGGLE_FILE" ]; then
+                echo "ON"
+            else
+                echo "OFF"
+            fi
+            echo -n "Mouse dimming: "
+            if [ -f "$TOGGLE_FILE" ]; then
+                echo "ON"
+            else
+                echo "OFF"
+            fi
+            echo "Mouse transition steps: $SMOOTH_DIM_MOUSE_STEPS, interval: ${SMOOTH_DIM_MOUSE_INTERVAL}s, instant: $INSTANT_MOUSE_DIM"
+            echo "Idle transition steps: $SMOOTH_DIM_IDLE_STEPS, interval: ${SMOOTH_DIM_IDLE_INTERVAL}s, instant: $INSTANT_IDLE_DIM"
+            echo "Time transition steps: $SMOOTH_DIM_TIME_STEPS, interval: ${SMOOTH_DIM_TIME_INTERVAL}s, instant: $INSTANT_TIME_DIM"
+        } > "$STATUS_FILE"
+    fi
+
+    # -------- Time state check --------
     if (( NOW - LAST_TIME_CHECK >= TIME_CHECK_INTERVAL )); then
         LAST_TIME_CHECK=$NOW
         if ! update_time_state; then
@@ -785,45 +1128,49 @@ while true; do
         fi
     fi
 
+    # -------- Geometry check --------
     if (( NOW - LAST_GEOM_CHECK >= GEOM_INTERVAL )); then
         LAST_GEOM_CHECK=$NOW
         XRANDR_LIST=$(xrandr --listmonitors 2>/dev/null)
         if [ $? -eq 0 ]; then
             NEW_HASH="$(echo "$XRANDR_LIST" | sha1sum | awk '{print $1}')"
-            if [ "$NEW_HASH" != "$GEOM_HASH" ]; then
+            MONITOR_COUNT=$(echo "$XRANDR_LIST" | head -1 | awk '{print $2}')   # e.g. "Monitors: 2"
+            if [ "$NEW_HASH" != "$GEOM_HASH" ] || [ "$MONITOR_COUNT" != "$LAST_MONITOR_COUNT" ]; then
                 GEOM_HASH="$NEW_HASH"
-                GEOM_DIRTY=1
+                LAST_MONITOR_COUNT="$MONITOR_COUNT"
                 read_monitors
                 apply_gamma
-                case "$CURRENT_STATE" in
-                    "active")
-                        apply_active_brightness
-                        ;;
-                    "idle")
-                        apply_idle_brightness
-                        ;;
-                esac
+                # Force the correct brightness for the new layout
+                for MON in "${MONITORS[@]}"; do
+                    if [ "$ENABLE_GAMMA" = true ]; then
+                        xrandr --output "$MON" --brightness "${MON_TARGET_BRIGHT[$MON]}" \
+                               --gamma "$CURRENT_GAMMA" 2>/dev/null &
+                    else
+                        xrandr --output "$MON" --brightness "${MON_TARGET_BRIGHT[$MON]}" 2>/dev/null &
+                    fi
+                done
+                wait
+
+                # Active state: need to re‑evaluate per‑monitor dimming
+                if [ "$CURRENT_STATE" = "active" ]; then
+                    apply_active_brightness
+                # Idle state: forced brightness already correct; no extra transition needed
+                fi
                 echo "Monitor configuration changed" >&2
             fi
         fi
     fi
 
-    if [ "$GEOM_DIRTY" -eq 1 ]; then
-        GEOM_DIRTY=0
-        continue
-    fi
-
+    # -------- Idle check --------
     if (( NOW - LAST_IDLE_CHECK >= IDLE_CHECK_INTERVAL )); then
         LAST_IDLE_CHECK=$NOW
-
+        # ... (identical to your idle check block)
         if [ "$ENABLE_IDLE" = true ] && [ ! -f "$IDLE_TOGGLE_FILE" ]; then
             idle_time=$(get_idle_time)
-
             effective_timeout="$IDLE_TIMEOUT"
             if [ -z "$effective_timeout" ] || [ "${effective_timeout:-0}" -eq 0 ]; then
                 effective_timeout=1
             fi
-
             case "$CURRENT_STATE" in
                 "active")
                     if [ -n "$idle_time" ] && [ "$idle_time" -ge "$effective_timeout" ]; then
@@ -845,6 +1192,7 @@ while true; do
         fi
     fi
 
+    # -------- Apply brightness based on state --------
     case "$CURRENT_STATE" in
         "active")
             apply_active_brightness
