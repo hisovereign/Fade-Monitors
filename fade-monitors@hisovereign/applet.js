@@ -9,7 +9,7 @@ const HOME = GLib.get_home_dir();
 const MOUSE_TOGGLE_FILE = HOME + "/.fade_mouse_enabled";
 const IDLE_TOGGLE_FILE = HOME + "/.idle_dim_enabled";
 const STOP_FILE = HOME + "/.fade_mouse_stopped";
-const SCRIPT_NAME = "fade-monitors-enhanced-dimming.sh";
+const SCRIPT_NAME = "fade-monitors";
 const SCRIPT_PATH = HOME + "/.local/bin/" + SCRIPT_NAME;
 const GITHUB_URL = "https://github.com/hisovereign/Fade-Monitors";
 
