@@ -1,15 +1,20 @@
 {
   "uuid": "fade-monitors@hisovereign",
   "name": "Fade-Monitors",
-  "description": "This is only an applet for the Fade-Monitors enhanced-dimming script. It toggles mouse-based and idle monitor dimming and can also start, stop, and open the Fade-Monitors script. See: github.com/hisovereign/Fade-Monitors",
-  "version": "1.0.0",
+  "description": "This is only an applet for the Fade-Monitors script. It toggles mouse-based and idle monitor dimming  as well as load a basic settings submenu. It can also start and stop the fade-monitors script. See: github.com/hisovereign/Fade-Monitors",
+  "version": "1.1.0",
   "max-instance": 1,
   "icon": "video-display-symbolic",
   "cinnamon-version": [
+    "4.0",
+    "4.2",
+    "4.4",
+    "4.6",
+    "4.8",
     "5.0",
     "6.0"
   ],
   "author": "hisovereign",
   "license": "GPL-2.0+",
-  "last-edited": 1775942712
+  "last-edited": 1776558645
 }
