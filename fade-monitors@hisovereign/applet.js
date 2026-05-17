@@ -126,7 +126,7 @@ class FadeMonitorsApplet extends Applet.IconApplet {
             this._newNightActiveBrightness = parseFloat(config.NIGHT_ACTIVE_BRIGHTNESS) || 0.4;
             this._newNightDimBrightness    = parseFloat(config.NIGHT_DIM_BRIGHTNESS)    || 0.1;
             this._newIdleBrightness        = parseFloat(config.IDLE_BRIGHTNESS)        || 0.1;
-            this._newEnableGamma           = config.ENABLE_GAMMA === "false";
+            this._newEnableGamma           = config.ENABLE_GAMMA === "true";
             this._newDayGamma              = config.DAY_GAMMA   || "1.0:1.0:1.0";
             this._newNightGamma            = config.NIGHT_GAMMA || "1.0:0.85:0.1";
             this._newIdleTimeout           = config.IDLE_TIMEOUT || "90";
