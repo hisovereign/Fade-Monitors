@@ -252,8 +252,6 @@ class FadeMonitorsApplet extends Applet.IconApplet {
             GLib.spawn_sync(null, [SCRIPT_PATH].concat(commands[i]), null, GLib.SpawnFlags.SEARCH_PATH, null);
         }
         GLib.spawn_sync(null, [SCRIPT_PATH, "reload"], null, GLib.SpawnFlags.SEARCH_PATH, null);
-
-        Main.notify("Fade Monitors", "Settings applied and reloaded.");
     }
 
     /* ---------------- Immediate toggles ---------------- */
