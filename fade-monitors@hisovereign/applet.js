@@ -59,11 +59,14 @@ class FadeMonitorsApplet extends Applet.IconApplet {
     /* ---------------- Cinnamon lifecycle ---------------- */
 
     on_applet_added_to_panel() {
-        this._startScript();
+        // Only start the script if it isn't already running
+        if (!this._isScriptRunning()) {
+            this._startScript();
+        }
     }
 
     on_applet_removed_from_panel() {
-        this._stopScript();
+
     }
 
     on_applet_clicked() {
